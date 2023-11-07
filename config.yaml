@@ -1,0 +1,21 @@
+options:
+  threads:
+    default: 10
+    type: int
+    description: |
+      Number of concurrent threads that will perform the test.
+  scale:
+    default: 10
+    type: int
+    description: |
+      Scaling number for the sysbench.
+  tables:
+    default: 8
+    type: int
+    description: |
+      Number of tables involved in the testing.
+  duration:
+    default: 0
+    type: int
+    description: |
+      Duration of the test, if set to 0, it does not stop.

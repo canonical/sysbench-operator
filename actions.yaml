@@ -1,0 +1,9 @@
+sysbench-run:
+  description: |
+    Kickstarts the sysbench service in this server.
+  params:
+    duration:
+      type: integer
+      default: 0
+      description: |
+        Sets the number of seconds the test should run each time. Setting 0 will run the test without stopping.

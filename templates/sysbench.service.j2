@@ -1,0 +1,10 @@
+[Unit]
+Description=Service for controlling sysbench
+Wants=network.target
+
+[Service]
+EnvironmentFile=-/etc/environment
+ExecStart=/usr/bin/sysbench_svc.py --tpcc_script=/usr/share/sysbench/tpcc.lua --db_driver={{ db_driver }} --threads={{ threads }} --tables={{ tables }} --scale={{ scale }} --db_name={{ db_name }} --db_user={{ db_user }} --db_password={{ db_password }} --db_host={{ db_host }} --db_port={{ db_port }} --duration={{ duration }} --command=run --extra_labels={{ extra_labels }} --duration={{ duration }}
+Restart=always
+TimeoutSec=600
+Type=simple
