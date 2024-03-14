@@ -1,5 +1,5 @@
-# This file configures Charmcraft.
-# See https://juju.is/docs/sdk/charmcraft-config for guidance.
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
 name: sysbench-operator
 
 
@@ -26,6 +26,9 @@ provides:
     limit: 1
 
 requires:
-  database:
+  mysql:
     interface: mysql_client
+    limit: 1
+  postgresql:
+    interface: postgresql_client
     limit: 1

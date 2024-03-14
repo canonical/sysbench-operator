@@ -30,10 +30,11 @@ class SysbenchService:
         duration: int = 0,
     ):
         self.tpcc_script = tpcc_script
-        self.sysbench = f"/usr/bin/sysbench {tpcc_script} --threads={threads} --tables={tables} --scale={scale} --force_pk=1 --db-driver={db_driver} --report-interval=10 --time={duration} "
+        driver = "mysql" if db_driver == "mysql" else "pgsql"
+        self.sysbench = f"/usr/bin/sysbench {tpcc_script} --threads={threads} --tables={tables} --scale={scale} --db-driver={driver} --report-interval=10 --time={duration} "
         if db_driver == "mysql":
-            self.sysbench += f"--mysql-db={db_name} --mysql-user={db_user} --mysql-password={db_password} --mysql-host={db_host} --mysql-port={db_port}"
-        elif db_driver == "pgsql":
+            self.sysbench += f"--force_pk=1 --mysql-db={db_name} --mysql-user={db_user} --mysql-password={db_password} --mysql-host={db_host} --mysql-port={db_port}"
+        elif db_driver == "postgresql":
             self.sysbench += f"--pgsql-db={db_name} --pgsql-user={db_user} --pgsql-password={db_password} --pgsql-host={db_host} --pgsql-port={db_port}"
         else:
             raise Exception("Wrong db driver chosen")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 pguimaraes
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """This connects the sysbench service to the database and the grafana agent.
@@ -22,21 +22,22 @@ import subprocess
 from typing import Dict, List
 
 import ops
-from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import apt
 from ops.main import main
 
 from constants import (
     COS_AGENT_RELATION,
-    DATABASE_NAME,
-    DATABASE_RELATION,
     METRICS_PORT,
     PEER_RELATION,
+    DatabaseRelationStatusEnum,
+    MultipleRelationsToDBError,
     SysbenchExecStatusEnum,
     SysbenchIsInWrongStateError,
+    SysbenchMissingOptionsError,
 )
-from sysbench import SysbenchOptionsFactory, SysbenchService, SysbenchStatus
+from relation_manager import DatabaseRelationManager
+from sysbench import SysbenchService, SysbenchStatus
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
@@ -57,13 +58,9 @@ class SysbenchOperator(ops.CharmBase):
         self.framework.observe(self.on[PEER_RELATION].relation_joined, self._on_peer_changed)
         self.framework.observe(self.on[PEER_RELATION].relation_changed, self._on_peer_changed)
 
-        self.database = DatabaseRequires(self, DATABASE_RELATION, DATABASE_NAME)
-        self.framework.observe(
-            getattr(self.database.on, "endpoints_changed"), self._on_endpoints_changed
-        )
-        self.framework.observe(
-            self.on[DATABASE_RELATION].relation_broken, self._on_relation_broken
-        )
+        self.database = DatabaseRelationManager(self, ["mysql", "postgresql"])
+        self.framework.observe(self.database.on.db_config_update, self._on_config_changed)
+
         self._grafana_agent = COSAgentProvider(
             self,
             scrape_configs=self.scrape_config,
@@ -72,7 +69,7 @@ class SysbenchOperator(ops.CharmBase):
         self.sysbench_status = SysbenchStatus(self, PEER_RELATION, SysbenchService())
         self.labels = ",".join([self.model.name, self.unit.name])
 
-    def _set_charm_status(self) -> SysbenchExecStatusEnum:
+    def _set_sysbench_status(self) -> SysbenchExecStatusEnum:
         """Recovers the sysbench status."""
         status = self.sysbench_status.check()
         if status == SysbenchExecStatusEnum.ERROR:
@@ -89,18 +86,34 @@ class SysbenchOperator(ops.CharmBase):
             self.unit.status = ops.model.BlockedStatus("Sysbench is stopped after run")
 
     def __del__(self):
-        """Set status for the operator and finishes the service."""
-        self._set_charm_status()
+        """Set status for the operator and finishes the service.
+
+        First, we check if there are relations with any meaningful data. If not, then
+        this is the most important status to report. Then, we check the details of the
+        sysbench service and the sysbench status.
+        """
+        try:
+            status = self.database.check()
+        except MultipleRelationsToDBError:
+            self.unit.status = ops.model.BlockedStatus("Multiple DB relations at once forbidden!")
+            return
+        if status == DatabaseRelationStatusEnum.NOT_AVAILABLE:
+            self.unit.status = ops.model.BlockedStatus("No database relation available")
+            return
+        if status == DatabaseRelationStatusEnum.AVAILABLE:
+            self.unit.status = ops.model.WaitingStatus("Waiting on data from relation")
+            return
+        if status == DatabaseRelationStatusEnum.ERROR:
+            self.unit.status = ops.model.BlockedStatus(
+                "Unexpected error with db relation: check logs"
+            )
+            return
+        self._set_sysbench_status()
 
     @property
     def is_tls_enabled(self):
         """Return tls status."""
         return False
-
-    @property
-    def _chosen_script(self) -> str:
-        driver = self.config["driver"]
-        return str(os.path.abspath(f"scripts/{driver}.lua"))
 
     @property
     def _unit_ip(self) -> str:
@@ -114,8 +127,10 @@ class SysbenchOperator(ops.CharmBase):
             # Nothing to do, there was no setup yet
             return
         svc.stop()
-        options = SysbenchOptionsFactory(self, DATABASE_RELATION).get_execution_options()
-        svc.render_service_file(self._chosen_script, options, labels=self.labels)
+        if not (options := self.database.get_execution_options()):
+            # Nothing to do, we can abandon this event and wait for the next changes
+            return
+        svc.render_service_file(self.database.script(), options, labels=self.labels)
         svc.run()
 
     def _on_relation_broken(self, _):
@@ -155,14 +170,15 @@ class SysbenchOperator(ops.CharmBase):
             # We need to mark this unit as prepared so we can rerun the script later
             self.sysbench_status.set(SysbenchExecStatusEnum.PREPARED)
 
-    def _execute_sysbench_cmd(self, extra_labels, command: str, driver: str):
+    def _execute_sysbench_cmd(self, extra_labels, command: str):
         """Execute the sysbench command."""
-        db = SysbenchOptionsFactory(self, DATABASE_RELATION).get_execution_options()
+        if not (db := self.database.get_execution_options()):
+            raise SysbenchMissingOptionsError("Missing database options")
         output = subprocess.check_output(
             [
                 "/usr/bin/sysbench_svc.py",
-                f"--tpcc_script={self._chosen_script}",
-                f"--db_driver={driver}",
+                f"--tpcc_script={self.database.script()}",
+                f"--db_driver={self.database.chosen_db_type()}",
                 f"--threads={db.threads}",
                 f"--tables={db.db_info.tables}",
                 f"--scale={db.db_info.scale}",
@@ -207,9 +223,12 @@ class SysbenchOperator(ops.CharmBase):
         if status != SysbenchExecStatusEnum.UNSET:
             event.fail("Failed: sysbench is already prepared, stop and clean up the cluster first")
 
-        driver = self.config["driver"]
         self.unit.status = ops.model.MaintenanceStatus("Running prepare command...")
-        self._execute_sysbench_cmd(self.labels, "prepare", driver)
+        try:
+            self._execute_sysbench_cmd(self.labels, "prepare")
+        except SysbenchMissingOptionsError:
+            event.fail("Failed: missing database options")
+            return
         SysbenchService().finished_preparing()
         self.sysbench_status.set(SysbenchExecStatusEnum.PREPARED)
         event.set_results({"status": "prepared"})
@@ -233,8 +252,10 @@ class SysbenchOperator(ops.CharmBase):
         self.unit.status = ops.model.MaintenanceStatus("Setting up benchmark")
         svc = SysbenchService()
         svc.stop()
-        options = SysbenchOptionsFactory(self, DATABASE_RELATION).get_execution_options()
-        svc.render_service_file(self._chosen_script, options, labels=self.labels)
+        if not (options := self.database.get_execution_options()):
+            event.fail("Failed: missing database options")
+            return
+        svc.render_service_file(self.database.script(), options, labels=self.labels)
         svc.run()
         self.sysbench_status.set(SysbenchExecStatusEnum.RUNNING)
         event.set_results({"status": "running"})
@@ -271,17 +292,16 @@ class SysbenchOperator(ops.CharmBase):
             SysbenchService().stop()
             logger.info("Sysbench service stopped in clean action")
 
-        driver = self.config["driver"]
         self.unit.status = ops.model.MaintenanceStatus("Cleaning up database")
         svc = SysbenchService()
         svc.stop()
-        self._execute_sysbench_cmd(self.labels, "clean", driver)
+        try:
+            self._execute_sysbench_cmd(self.labels, "clean")
+        except SysbenchMissingOptionsError:
+            event.fail("Failed: missing database options")
+            return
         svc.unset()
         self.sysbench_status.set(SysbenchExecStatusEnum.UNSET)
-
-    def _on_endpoints_changed(self, _) -> None:
-        # TODO: update the service if it is already running
-        pass
 
 
 if __name__ == "__main__":
