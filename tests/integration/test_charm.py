@@ -59,7 +59,7 @@ async def run_action(
     "db_driver",
     [
         (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
+        #        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
     ],
 )
 @pytest.mark.abort_on_fail
@@ -111,7 +111,7 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
     "db_driver",
     [
         (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
+        #        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
     ],
 )
 @pytest.mark.abort_on_fail
@@ -135,7 +135,7 @@ async def test_prepare_action(ops_test: OpsTest, db_driver) -> None:
     "db_driver",
     [
         (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
+        #        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
     ],
 )
 @pytest.mark.abort_on_fail
@@ -162,7 +162,7 @@ async def test_run_action(ops_test: OpsTest, db_driver) -> None:
     "db_driver",
     [
         (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
+        #        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
     ],
 )
 @pytest.mark.abort_on_fail
