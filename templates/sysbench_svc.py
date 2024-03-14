@@ -4,6 +4,7 @@
 
 """This method runs the sysbench call, collects its output and forwards to prometheus."""
 
+import os
 import argparse
 import signal
 import subprocess
@@ -32,6 +33,8 @@ class SysbenchService:
         self.sysbench = f"/usr/bin/sysbench {tpcc_script} --threads={threads} --tables={tables} --scale={scale} --force_pk=1 --db-driver={db_driver} --report-interval=10 --time={duration} "
         if db_driver == "mysql":
             self.sysbench += f"--mysql-db={db_name} --mysql-user={db_user} --mysql-password={db_password} --mysql-host={db_host} --mysql-port={db_port}"
+        elif db_driver == "pgsql":
+            self.sysbench += f"--pgsql-db={db_name} --pgsql-user={db_user} --pgsql-password={db_password} --pgsql-host={db_host} --pgsql-port={db_port}"
         else:
             raise Exception("Wrong db driver chosen")
 
@@ -108,7 +111,14 @@ def main(args):
 
     signal.signal(signal.SIGINT, _exit)
     signal.signal(signal.SIGTERM, _exit)
+    # Collects the status if the child process ends
+    signal.signal(signal.SIGCHLD, _exit)
     start_http_server(8088)
+
+    # Set LUA_PATH
+    os.environ["LUA_PATH"] = os.path.join(
+        os.path.dirname(args.tpcc_script), "?.lua"
+    )
 
     if args.command == "prepare":
         svc.prepare()
@@ -122,8 +132,9 @@ def main(args):
             universal_newlines=True,
         )
         metrics = {}
-        while keep_running:
+        while keep_running and proc.poll() is None:
             svc.run(proc, metrics, f"tpcc_{args.db_driver}", args.extra_labels.split(","))
+        svc.stop(proc)
     elif args.command == "clean":
         svc.clean()
     else:

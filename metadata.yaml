@@ -1,33 +1,31 @@
 # This file configures Charmcraft.
 # See https://juju.is/docs/sdk/charmcraft-config for guidance.
-name: sysbench-perf-operator
+name: sysbench-operator
 
 
-title: Sysbench Performance Operator
+title: Sysbench Operator
 
-summary: Generates a TPCC load against your workload and collect metrics in Prometheus.
+summary: Generates a load against your workload and collect metrics in Prometheus.
 
 
 description: |
   Run this charm to connect with a mysql deployment and test the performance or generate a load against the cluster.
-
 
 series:
 - jammy
 - lunar
 - mantic
 
+peers:
+  benchmark-peer:
+    interface: sysbench_peers
+
 provides:
   cos-agent:
     interface: cos_agent
     limit: 1
+
 requires:
   database:
     interface: mysql_client
     limit: 1
-
-resources:
-  script:
-    type: file
-    filename: script.zip
-    description: The tpcc scripts to be used in this test

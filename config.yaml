@@ -19,3 +19,8 @@ options:
     type: int
     description: |
       Duration of the test, if set to 0, it does not stop.
+  driver:
+    default: "mysql"
+    type: string
+    description: |
+      The driver to be used for the test.

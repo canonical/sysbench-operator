@@ -1,0 +1,5 @@
+[Unit]
+Description=Sysbench has ran prepare command
+Requires=multi-user.target network.target
+Conflicts=rescue.service rescue.target
+AllowIsolate=yes
