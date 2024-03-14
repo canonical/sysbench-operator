@@ -65,7 +65,7 @@ async def run_action(
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
-    """Build the charm and deploy + 3 mysql units to ensure a cluster is formed."""
+    """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
     charm = await ops_test.build_charm(".")
 
     config = {
@@ -116,7 +116,7 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
 )
 @pytest.mark.abort_on_fail
 async def test_prepare_action(ops_test: OpsTest, db_driver) -> None:
-    """Build the charm and deploy + 3 mysql units to ensure a cluster is formed."""
+    """Validate the prepare action."""
     output = await run_action(ops_test, "prepare", f"{APP_NAME}/0")
     assert output.status == "completed"
 
@@ -140,7 +140,7 @@ async def test_prepare_action(ops_test: OpsTest, db_driver) -> None:
 )
 @pytest.mark.abort_on_fail
 async def test_run_action(ops_test: OpsTest, db_driver) -> None:
-    """Build the charm and deploy + 3 mysql units to ensure a cluster is formed."""
+    """Try to run the benchmark for DURATION and then wait until it is finished."""
     output = await run_action(ops_test, "run", f"{APP_NAME}/0")
     assert output.status == "completed"
 
@@ -167,7 +167,7 @@ async def test_run_action(ops_test: OpsTest, db_driver) -> None:
 )
 @pytest.mark.abort_on_fail
 async def test_clean_action(ops_test: OpsTest, db_driver) -> None:
-    """Build the charm and deploy + 3 mysql units to ensure a cluster is formed."""
+    """Validate clean action."""
     output = await run_action(ops_test, "clean", f"{APP_NAME}/0")
     assert output.status == "completed"
 
