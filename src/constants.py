@@ -1,4 +1,4 @@
-# Copyright 2023 pguimaraes
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """This module contains the constants and models used by the sysbench charm."""
@@ -20,13 +20,16 @@ SYSBENCH_SVC_READY_TARGET = f"{SYSBENCH_SVC}_prepared.target"
 
 DATABASE_NAME = "sysbench-db"  # TODO: use a UUID here and publish its name in the peer relation
 
-DATABASE_RELATION = "database"
 COS_AGENT_RELATION = "cos-agent"
 PEER_RELATION = "benchmark-peer"
 
 
 class SysbenchError(Exception):
     """Sysbench error."""
+
+
+class MultipleRelationsToDBError(SysbenchError):
+    """Multiple relations to the same or multiple DBs exist."""
 
 
 class SysbenchExecFailedError(SysbenchError):
@@ -71,6 +74,19 @@ class SysbenchBaseDatabaseModel(BaseModel):
         if not endpoint_set:
             raise SysbenchMissingOptionsError("Missing endpoint as unix_socket OR host:port")
         return field_values
+
+
+class DatabaseRelationStatusEnum(Enum):
+    """Represents the different status of the database relation.
+
+    The ERROR in this case corresponds to the case, for example, more than one
+    relation exists for a given DB, or for multiple DBs.
+    """
+
+    NOT_AVAILABLE = "not_available"
+    AVAILABLE = "available"
+    CONFIGURED = "configured"
+    ERROR = "error"
 
 
 class SysbenchExecutionModel(BaseModel):

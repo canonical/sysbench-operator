@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 pguimaraes
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import asyncio
@@ -28,7 +28,7 @@ DB_CHARM = {
         "config": {"profile": "testing"},
         "app_name": MYSQL_APP_NAME,
     },
-    "pgsql": {
+    "postgresql": {
         "charm": "postgresql",
         "channel": "14/edge",
         "config": {},
@@ -59,7 +59,7 @@ async def run_action(
     "db_driver",
     [
         (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        #        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
+        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
     ],
 )
 @pytest.mark.abort_on_fail
@@ -72,7 +72,6 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
         "threads": 1,
         "tables": 1,
         "scale": 1,
-        "driver": db_driver,
         "duration": 10,
     }
 
@@ -92,7 +91,9 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
         ),
     )
 
-    await ops_test.model.relate(f"{APP_NAME}:database", f"{MYSQL_APP_NAME}:database")
+    await ops_test.model.relate(
+        f"{APP_NAME}:{db_driver}", f"{DB_CHARM[db_driver]['app_name']}:database"
+    )
 
     # Reduce the update_status frequency until the cluster is deployed
     async with ops_test.fast_forward("60s"):
@@ -100,7 +101,7 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
             lambda: len(ops_test.model.applications[APP_NAME].units) == 1
         )
         await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, DB_CHARM[db_driver]["app_name"]],
+            apps=[DB_CHARM[db_driver]["app_name"]],
             status="active",
             raise_on_blocked=True,
             timeout=15 * 60,
@@ -111,7 +112,7 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
     "db_driver",
     [
         (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        #        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
+        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
     ],
 )
 @pytest.mark.abort_on_fail
@@ -135,7 +136,7 @@ async def test_prepare_action(ops_test: OpsTest, db_driver) -> None:
     "db_driver",
     [
         (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        #        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
+        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
     ],
 )
 @pytest.mark.abort_on_fail
@@ -162,7 +163,7 @@ async def test_run_action(ops_test: OpsTest, db_driver) -> None:
     "db_driver",
     [
         (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        #        (pytest.param("pgsql", marks=pytest.mark.group("postgresql"))),
+        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
     ],
 )
 @pytest.mark.abort_on_fail
