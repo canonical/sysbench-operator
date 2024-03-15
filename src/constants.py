@@ -28,6 +28,10 @@ class SysbenchError(Exception):
     """Sysbench error."""
 
 
+class SysbenchExecError(SysbenchError):
+    """Sysbench failed to execute a command."""
+
+
 class MultipleRelationsToDBError(SysbenchError):
     """Multiple relations to the same or multiple DBs exist."""
 
