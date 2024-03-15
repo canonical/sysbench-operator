@@ -1,6 +1,6 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
-name: sysbench-operator
+name: sysbench
 
 
 title: Sysbench Operator
