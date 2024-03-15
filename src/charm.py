@@ -32,6 +32,7 @@ from constants import (
     PEER_RELATION,
     DatabaseRelationStatusEnum,
     MultipleRelationsToDBError,
+    SysbenchExecError,
     SysbenchExecStatusEnum,
     SysbenchIsInWrongStateError,
     SysbenchMissingOptionsError,
@@ -174,25 +175,30 @@ class SysbenchOperator(ops.CharmBase):
         """Execute the sysbench command."""
         if not (db := self.database.get_execution_options()):
             raise SysbenchMissingOptionsError("Missing database options")
-        output = subprocess.check_output(
-            [
-                "/usr/bin/sysbench_svc.py",
-                f"--tpcc_script={self.database.script()}",
-                f"--db_driver={self.database.chosen_db_type()}",
-                f"--threads={db.threads}",
-                f"--tables={db.db_info.tables}",
-                f"--scale={db.db_info.scale}",
-                f"--db_name={db.db_info.db_name}",
-                f"--db_user={db.db_info.username}",
-                f"--db_password={db.db_info.password}",
-                f"--db_host={db.db_info.host}",
-                f"--db_port={db.db_info.port}",
-                f"--duration={db.duration}",
-                f"--command={command}",
-                f"--extra_labels={extra_labels}",
-            ],
-            timeout=86400,
-        )
+        try:
+            output = subprocess.check_output(
+                [
+                    "/usr/bin/sysbench_svc.py",
+                    f"--tpcc_script={self.database.script()}",
+                    f"--db_driver={self.database.chosen_db_type()}",
+                    f"--threads={db.threads}",
+                    f"--tables={db.db_info.tables}",
+                    f"--scale={db.db_info.scale}",
+                    f"--db_name={db.db_info.db_name}",
+                    f"--db_user={db.db_info.username}",
+                    f"--db_password={db.db_info.password}",
+                    f"--db_host={db.db_info.host}",
+                    f"--db_port={db.db_info.port}",
+                    f"--duration={db.duration}",
+                    f"--command={command}",
+                    f"--extra_labels={extra_labels}",
+                ],
+                timeout=86400,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Process failed with: {e}")
+            self.sysbench_status.set(SysbenchExecStatusEnum.ERROR)
+            raise SysbenchExecError()
         logger.debug("Sysbench output: %s", output)
 
     def check(self, event=None) -> SysbenchExecStatusEnum:
@@ -228,6 +234,9 @@ class SysbenchOperator(ops.CharmBase):
             self._execute_sysbench_cmd(self.labels, "prepare")
         except SysbenchMissingOptionsError:
             event.fail("Failed: missing database options")
+            return
+        except SysbenchExecError:
+            event.fail("Failed: error in sysbench while executing prepare")
             return
         SysbenchService().finished_preparing()
         self.sysbench_status.set(SysbenchExecStatusEnum.PREPARED)
@@ -299,6 +308,9 @@ class SysbenchOperator(ops.CharmBase):
             self._execute_sysbench_cmd(self.labels, "clean")
         except SysbenchMissingOptionsError:
             event.fail("Failed: missing database options")
+            return
+        except SysbenchExecError:
+            event.fail("Failed: error in sysbench while executing clean")
             return
         svc.unset()
         self.sysbench_status.set(SysbenchExecStatusEnum.UNSET)
