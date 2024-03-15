@@ -3,6 +3,7 @@
 
 """This module contains the constants and models used by the sysbench charm."""
 
+import os
 from enum import Enum
 from typing import Optional
 
@@ -64,18 +65,26 @@ class SysbenchBaseDatabaseModel(BaseModel):
     def validate_if_missing_params(cls, field_values):
         """Validate if missing params."""
         missing_param = []
+        # Check if the required fields are present
         for f in ["username", "password", "db_name"]:
             if f not in field_values or field_values[f] is None:
                 missing_param.append(f)
         if missing_param:
             raise SysbenchMissingOptionsError(f"{missing_param}")
-        endpoint_set = (
-            "host" in field_values
-            and field_values["host"] is not None
-            and "port" in field_values
-            and field_values["port"] is not None
-        ) or ("unix_socket" in field_values and field_values["unix_socket"] is not None)
-        if not endpoint_set:
+
+        if os.path.exists(field_values.get("unix_socket") or ""):
+            field_values["host"] = ""
+            field_values["port"] = 443  # we do not need this value, as long as it is an int
+        else:
+            # Identify the port
+            if (port := field_values.get("port")) and isinstance(port, str):
+                field_values["port"] = int(port)
+            elif not port and field_values.get("host"):
+                field_values["port"] = 443
+            field_values["unix_socket"] = ""
+
+        # Check if we have the correct endpoint
+        if not field_values.get("host") and not field_values.get("unix_socket"):
             raise SysbenchMissingOptionsError("Missing endpoint as unix_socket OR host:port")
         return field_values
 

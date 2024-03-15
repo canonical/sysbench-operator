@@ -189,6 +189,7 @@ class SysbenchOperator(ops.CharmBase):
                     f"--db_password={db.db_info.password}",
                     f"--db_host={db.db_info.host}",
                     f"--db_port={db.db_info.port}",
+                    f"--db_socket={db.db_info.unix_socket}",
                     f"--duration={db.duration}",
                     f"--command={command}",
                     f"--extra_labels={extra_labels}",

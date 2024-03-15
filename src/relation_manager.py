@@ -173,7 +173,7 @@ class SysbenchOptionsFactory(Object):
 
         return SysbenchBaseDatabaseModel(
             host=host,
-            port=int(port),
+            port=port,
             unix_socket=unix_socket,
             username=credentials.get("username"),
             password=credentials.get("password"),

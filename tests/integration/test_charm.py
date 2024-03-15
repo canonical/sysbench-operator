@@ -37,6 +37,36 @@ DB_CHARM = {
 }
 
 
+DB_ROUTER = {
+    "mysql": {
+        "charm": "mysql-router",
+        "channel": "dpe/edge",
+        "config": {},
+        "app_name": "mysql-router",
+    },
+    "postgresql": {
+        "charm": "pgbouncer",
+        "channel": "1/edge",
+        "config": {},
+        "app_name": "pgbouncer",
+    },
+}
+
+
+DEPLOY_ALL_GROUP_MARKS = [
+    (
+        pytest.param(
+            app,
+            router,
+            id=f"{app}_router-{router}",
+            marks=pytest.mark.group(f"{app}_router-{router}"),
+        )
+    )
+    for app in ["mysql", "postgresql"]
+    for router in [True, False]
+]
+
+
 def check_service(svc_name):
     return subprocess.check_output(
         ["juju", "ssh", f"{APP_NAME}/0", "--", "sudo", "systemctl", "is-active", svc_name],
@@ -55,16 +85,10 @@ async def run_action(
     return SimpleNamespace(status=result.status or "completed", response=result.results)
 
 
-@pytest.mark.parametrize(
-    "db_driver",
-    [
-        (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
-    ],
-)
+@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
+async def test_build_and_deploy(ops_test: OpsTest, db_driver, use_router) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
     charm = await ops_test.build_charm(".")
 
@@ -91,9 +115,23 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
         ),
     )
 
-    await ops_test.model.relate(
-        f"{APP_NAME}:{db_driver}", f"{DB_CHARM[db_driver]['app_name']}:database"
-    )
+    if use_router:
+        await ops_test.model.deploy(
+            DB_ROUTER[db_driver]["charm"],
+            application_name=DB_ROUTER[db_driver]["app_name"],
+            channel=DB_ROUTER[db_driver]["channel"],
+            config=DB_ROUTER[db_driver]["config"],
+        )
+        await ops_test.model.relate(
+            f"{APP_NAME}:{db_driver}", f"{DB_ROUTER[db_driver]['app_name']}"
+        )
+        await ops_test.model.relate(
+            f"{DB_CHARM[db_driver]['app_name']}:database", f"{DB_ROUTER[db_driver]['app_name']}"
+        )
+    else:
+        await ops_test.model.relate(
+            f"{APP_NAME}:{db_driver}", f"{DB_CHARM[db_driver]['app_name']}:database"
+        )
 
     # Reduce the update_status frequency until the cluster is deployed
     async with ops_test.fast_forward("60s"):
@@ -108,15 +146,9 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver) -> None:
         )
 
 
-@pytest.mark.parametrize(
-    "db_driver",
-    [
-        (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
-    ],
-)
+@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-async def test_prepare_action(ops_test: OpsTest, db_driver) -> None:
+async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
     """Validate the prepare action."""
     output = await run_action(ops_test, "prepare", f"{APP_NAME}/0")
     assert output.status == "completed"
@@ -132,15 +164,9 @@ async def test_prepare_action(ops_test: OpsTest, db_driver) -> None:
     assert "inactive" not in svc_output and "active" in svc_output
 
 
-@pytest.mark.parametrize(
-    "db_driver",
-    [
-        (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
-    ],
-)
+@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-async def test_run_action(ops_test: OpsTest, db_driver) -> None:
+async def test_run_action(ops_test: OpsTest, db_driver, use_router) -> None:
     """Try to run the benchmark for DURATION and then wait until it is finished."""
     output = await run_action(ops_test, "run", f"{APP_NAME}/0")
     assert output.status == "completed"
@@ -159,15 +185,9 @@ async def test_run_action(ops_test: OpsTest, db_driver) -> None:
     assert "inactive" in svc_output
 
 
-@pytest.mark.parametrize(
-    "db_driver",
-    [
-        (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
-    ],
-)
+@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-async def test_clean_action(ops_test: OpsTest, db_driver) -> None:
+async def test_clean_action(ops_test: OpsTest, db_driver, use_router) -> None:
     """Validate clean action."""
     output = await run_action(ops_test, "clean", f"{APP_NAME}/0")
     assert output.status == "completed"

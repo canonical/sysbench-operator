@@ -74,6 +74,7 @@ class SysbenchService:
                 "db_password": db.db_info.password,
                 "db_host": db.db_info.host,
                 "db_port": db.db_info.port,
+                "db_socket": db.db_info.unix_socket,
                 "duration": db.duration,
                 "script_path": script,
                 "extra_labels": labels,
