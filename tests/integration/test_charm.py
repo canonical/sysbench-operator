@@ -168,15 +168,9 @@ async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
             assert "inactive" not in svc_output and "active" in svc_output
 
 
-@pytest.mark.parametrize(
-    "db_driver",
-    [
-        (pytest.param("mysql", marks=pytest.mark.group("mysql"))),
-        (pytest.param("postgresql", marks=pytest.mark.group("postgresql"))),
-    ],
-)
+@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-async def test_run_action_and_cause_failure(ops_test: OpsTest, db_driver) -> None:
+async def test_run_action_and_cause_failure(ops_test: OpsTest, db_driver, use_router) -> None:
     """Starts a run and then kills the sysbench process. Systemd must then report it as failed."""
     app = ops_test.model.applications[APP_NAME]
     await app.set_config({"duration": "0"})
