@@ -1,9 +1,10 @@
 #!/usr/bin/python3
-# Copyright 2023 pguimaraes
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """This method runs the sysbench call, collects its output and forwards to prometheus."""
 
+import sys
 import os
 import argparse
 import signal
@@ -95,11 +96,15 @@ def add_benchmark_metric(metrics, label, extra_labels, description, value):
     metrics[label].labels(*extra_labels).set(value)
 
 
+keep_running = True
+
+
 def main(args):
     """Run main method."""
-    keep_running = True
+    global keep_running    
 
     def _exit(*args, **kwargs):
+        global keep_running
         keep_running = False  # noqa: F841
 
     svc = SysbenchService(
@@ -119,8 +124,6 @@ def main(args):
 
     signal.signal(signal.SIGINT, _exit)
     signal.signal(signal.SIGTERM, _exit)
-    # Collects the status if the child process ends
-    signal.signal(signal.SIGCHLD, _exit)
     start_http_server(8088)
 
     # Set LUA_PATH
@@ -142,7 +145,19 @@ def main(args):
         metrics = {}
         while keep_running and proc.poll() is None:
             svc.run(proc, metrics, f"tpcc_{args.db_driver}", args.extra_labels.split(","))
-        svc.stop(proc)
+        print(f"sysbench STDOUT: {proc.stdout.read()}")
+        if not keep_running:
+            # It means we have requested the main process to finish
+            # Now, check if we also need to terminate current sysbench
+            if proc.poll() is None:
+                # We have received a keep_running=False but still running. Terminate it
+                # This will end the process with -15, which is SIGTERM
+                svc.stop(proc)
+            sys.exit(0)
+        if proc.poll() != 0:
+            # Make sure we report a failure to systemd
+            print(f"sysbench STDERR: {proc.stderr.read()}")
+            raise Exception(f"sysbench failed with {proc.poll()}")
     elif args.command == "clean":
         svc.clean()
     else:
