@@ -26,16 +26,22 @@ class SysbenchService:
         db_user: str,
         db_password: str,
         db_host: str,
-        db_port: int = 3306,
+        db_port: int,
+        db_socket: str,
         duration: int = 0,
     ):
         self.tpcc_script = tpcc_script
         driver = "mysql" if db_driver == "mysql" else "pgsql"
+        socket = (
+            f"--{driver}-host={db_host} --{driver}-port={db_port}"
+            if len(db_socket) == 0
+            else f"--{driver}-socket={db_socket}"
+        )
         self.sysbench = f"/usr/bin/sysbench {tpcc_script} --threads={threads} --tables={tables} --scale={scale} --db-driver={driver} --report-interval=10 --time={duration} "
         if db_driver == "mysql":
-            self.sysbench += f"--force_pk=1 --mysql-db={db_name} --mysql-user={db_user} --mysql-password={db_password} --mysql-host={db_host} --mysql-port={db_port}"
+            self.sysbench += f"--force_pk=1 --mysql-db={db_name} --mysql-user={db_user} --mysql-password={db_password} {socket}"
         elif db_driver == "postgresql":
-            self.sysbench += f"--pgsql-db={db_name} --pgsql-user={db_user} --pgsql-password={db_password} --pgsql-host={db_host} --pgsql-port={db_port}"
+            self.sysbench += f"--pgsql-db={db_name} --pgsql-user={db_user} --pgsql-password={db_password} {socket}"
         else:
             raise Exception("Wrong db driver chosen")
 
@@ -107,6 +113,7 @@ def main(args):
         db_password=args.db_password,
         db_host=args.db_host,
         db_port=args.db_port,
+        db_socket=args.db_socket,
         duration=args.duration,
     )
 
@@ -156,6 +163,7 @@ if __name__ == "__main__":
     parser.add_argument("--db_password", type=str)
     parser.add_argument("--db_host", type=str)
     parser.add_argument("--db_port", type=int)
+    parser.add_argument("--db_socket", type=str)
     parser.add_argument("--duration", type=int)
     parser.add_argument("--command", type=str)
     parser.add_argument(

@@ -5,7 +5,7 @@ Requires=network.target sysbench_prepared.target
 
 [Service]
 EnvironmentFile=-/etc/environment
-ExecStart=/usr/bin/sysbench_svc.py --tpcc_script={{ script_path }} --db_driver={{ db_driver }} --threads={{ threads }} --tables={{ tables }} --scale={{ scale }} --db_name={{ db_name }} --db_user={{ db_user }} --db_password={{ db_password }} --db_host={{ db_host }} --db_port={{ db_port }} --duration={{ duration }} --command=run --extra_labels={{ extra_labels }} --duration={{ duration }}
+ExecStart=/usr/bin/sysbench_svc.py --tpcc_script={{ script_path }} --db_driver={{ db_driver }} --threads={{ threads }} --tables={{ tables }} --scale={{ scale }} --db_name={{ db_name }} --db_user={{ db_user }} --db_password={{ db_password }} --db_host={{ db_host }} --db_port={{ db_port }} --db_socket={{ db_socket }} --duration={{ duration }} --command=run --extra_labels={{ extra_labels }} --duration={{ duration }}
 Restart=no
 TimeoutSec=600
 Type=simple
