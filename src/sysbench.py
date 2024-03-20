@@ -58,14 +58,14 @@ class SysbenchService:
         return f"/etc/systemd/system/{self.svc}.service"
 
     def render_service_file(
-        self, script: str, db: SysbenchExecutionModel, labels: Optional[str] = ""
+        self, script: str, db_type: str, db: SysbenchExecutionModel, labels: Optional[str] = ""
     ) -> bool:
         """Render the systemd service file."""
         _render(
             "sysbench.service.j2",
             self.svc_path,
             {
-                "db_driver": "mysql",
+                "db_driver": db_type,
                 "threads": db.threads,
                 "tables": db.db_info.tables,
                 "scale": db.db_info.scale,

@@ -131,7 +131,9 @@ class SysbenchOperator(ops.CharmBase):
         if not (options := self.database.get_execution_options()):
             # Nothing to do, we can abandon this event and wait for the next changes
             return
-        svc.render_service_file(self.database.script(), options, labels=self.labels)
+        svc.render_service_file(
+            self.database.script(), self.database.chosen_db_type(), options, labels=self.labels
+        )
         svc.run()
 
     def _on_relation_broken(self, _):
@@ -264,7 +266,9 @@ class SysbenchOperator(ops.CharmBase):
         if not (options := self.database.get_execution_options()):
             event.fail("Failed: missing database options")
             return
-        svc.render_service_file(self.database.script(), options, labels=self.labels)
+        svc.render_service_file(
+            self.database.script(), self.database.chosen_db_type(), options, labels=self.labels
+        )
         svc.run()
         self.sysbench_status.set(SysbenchExecStatusEnum.RUNNING)
         event.set_results({"status": "running"})
