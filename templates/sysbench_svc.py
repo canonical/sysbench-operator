@@ -34,7 +34,7 @@ class SysbenchService:
         driver = "mysql" if db_driver == "mysql" else "pgsql"
         socket = (
             f"--{driver}-host={db_host} --{driver}-port={db_port}"
-            if db_socket is None
+            if len(db_socket) == 0
             else f"--{driver}-socket={db_socket}"
         )
         self.sysbench = f"/usr/bin/sysbench {tpcc_script} --threads={threads} --tables={tables} --scale={scale} --db-driver={driver} --report-interval=10 --time={duration} "
