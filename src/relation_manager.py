@@ -54,7 +54,7 @@ class DatabaseRelationManager(Object):
                 self.charm,
                 rel,
                 DATABASE_NAME,
-                external_node_connectivity=self._use_external_connection(rel)
+                external_node_connectivity=self._use_external_connection(rel),
             )
             self.framework.observe(
                 getattr(self.relations[rel].on, "endpoints_changed"),
