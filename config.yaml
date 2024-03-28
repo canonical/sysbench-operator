@@ -19,3 +19,9 @@ options:
     type: int
     description: |
       Duration of the test, if set to 0, it does not stop.
+  request-external-connectivity:
+    default: True
+    type: boolean
+    description: |
+      Whenever a CMR is used to the database relations, then this
+      unit will add the request for external_node_connectivity=True.
