@@ -16,9 +16,17 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseRequirerData,
     DatabaseRequirerEventHandlers,
 )
-from ops.charm import CharmBase, CharmEvents
+
 from ops.framework import EventBase, EventSource, Object
 from ops.model import ModelError, Relation
+from ops import Model
+
+from ops.charm import (
+    CharmBase, 
+    CharmEvents, 
+    RelationCreatedEvent, 
+    RelationChangedEvent,
+)
 
 from constants import (
     DATABASE_NAME,
@@ -65,7 +73,7 @@ class SysbenchDatabaseRequirerEventHandlers(DatabaseRequirerEventHandlers):
         relation_data: Optional[DatabaseRequirerData] = None,
         unique_key: str = ""
     ):
-        super().__init__(self, charm, relation_data, unique_key)
+        super().__init__(charm, relation_data, unique_key)
 
     def _on_relation_created_event(self, event: RelationCreatedEvent) -> None:
         """Event emitted when the database relation is created."""
@@ -82,10 +90,7 @@ class SysbenchDatabaseRequirerEventHandlers(DatabaseRequirerEventHandlers):
         super()._on_relation_changed_event(event)
 
 
-class SysbenchDatabaseRequires(
-    SysbenchDatabaseRequirerData,
-    SysbenchDatabaseRequirerEventHandlers,
-):
+class SysbenchDatabaseRequires(SysbenchDatabaseRequirerEventHandlers):
     """Overloads the DatabaseRequirerHandlers object."""
 
     def __init__(
@@ -98,8 +103,7 @@ class SysbenchDatabaseRequires(
         additional_secret_fields: Optional[List[str]] = [],
         external_node_connectivity: bool = False,
     ):
-        SysbenchDatabaseRequirerData.__init__(
-            self,
+        req_data = SysbenchDatabaseRequirerData(
             charm.model,
             relation_name,
             database_name,
@@ -108,7 +112,7 @@ class SysbenchDatabaseRequires(
             additional_secret_fields,
             external_node_connectivity,
         )
-        SysbenchDatabaseRequirerEventHandlers.__init__(self, charm, self)
+        super().__init__(charm, req_data)
 
 
 class NoRemoteDBUnitsAvailableError(Exception):
@@ -155,7 +159,7 @@ class DatabaseRelationManager(Object):
                 self.charm,
                 rel,
                 db_name,
-                external_node_connectivity=extern_conn,
+                external_node_connectivity=external_conn,
             )
             self.framework.observe(
                 getattr(self.relations[rel].on, "endpoints_changed"),
