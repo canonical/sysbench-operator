@@ -16,17 +16,10 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseRequirerData,
     DatabaseRequirerEventHandlers,
 )
-
+from ops import Model
+from ops.charm import CharmBase, CharmEvents, RelationChangedEvent, RelationCreatedEvent
 from ops.framework import EventBase, EventSource, Object
 from ops.model import ModelError, Relation
-from ops import Model
-
-from ops.charm import (
-    CharmBase, 
-    CharmEvents, 
-    RelationCreatedEvent, 
-    RelationChangedEvent,
-)
 
 from constants import (
     DATABASE_NAME,
@@ -71,7 +64,7 @@ class SysbenchDatabaseRequirerEventHandlers(DatabaseRequirerEventHandlers):
         self,
         charm: CharmBase,
         relation_data: Optional[DatabaseRequirerData] = None,
-        unique_key: str = ""
+        unique_key: str = "",
     ):
         super().__init__(charm, relation_data, unique_key)
 
