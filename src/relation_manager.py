@@ -144,21 +144,22 @@ class DatabaseRelationManager(Object):
             try:
                 external_conn = self._use_external_connection(rel)
                 db_name = DATABASE_NAME
+                self.relations[rel] = SysbenchDatabaseRequires(
+                    self.charm,
+                    rel,
+                    db_name,
+                    external_node_connectivity=external_conn,
+                )
+                self.framework.observe(
+                    getattr(self.relations[rel].on, "endpoints_changed"),
+                    self._on_endpoints_changed,
+                )
+                self.framework.observe(
+                    self.charm.on[rel].relation_broken, self._on_endpoints_changed
+                )
             except NoRemoteDBUnitsAvailableError:
                 # No members available yet, we should not set the DB name
-                external_conn = False
-                db_name = None
-            self.relations[rel] = SysbenchDatabaseRequires(
-                self.charm,
-                rel,
-                db_name,
-                external_node_connectivity=external_conn,
-            )
-            self.framework.observe(
-                getattr(self.relations[rel].on, "endpoints_changed"),
-                self._on_endpoints_changed,
-            )
-            self.framework.observe(self.charm.on[rel].relation_broken, self._on_endpoints_changed)
+                pass
 
     def _use_external_connection(self, relation_name: str) -> bool:
         if not self.charm.config.get("request-external-connectivity"):

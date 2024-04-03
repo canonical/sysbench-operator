@@ -6,9 +6,11 @@ import asyncio
 import logging
 import re
 import subprocess
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
+import juju
 import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
@@ -21,6 +23,7 @@ APP_NAME = METADATA["name"]
 MYSQL_APP_NAME = "mysql"
 PGSQL_APP_NAME = "postgresql"
 DURATION = 10
+K8S_DB_MODEL_NAME = "database-" + str(uuid.uuid4())[0:5]
 
 
 DB_CHARM = {
@@ -32,6 +35,18 @@ DB_CHARM = {
     },
     "postgresql": {
         "charm": "postgresql",
+        "channel": "14/edge",
+        "config": {},
+        "app_name": PGSQL_APP_NAME,
+    },
+    "mysql-k8s": {
+        "charm": "mysql-k8s",
+        "channel": "8.0/edge",
+        "config": {"profile": "testing"},
+        "app_name": MYSQL_APP_NAME,
+    },
+    "postgresql-k8s": {
+        "charm": "postgresql-k8s",
         "channel": "14/edge",
         "config": {},
         "app_name": PGSQL_APP_NAME,
@@ -52,6 +67,18 @@ DB_ROUTER = {
         "config": {},
         "app_name": "pgbouncer",
     },
+    "mysql-k8s": {
+        "charm": "mysql-router-k8s",
+        "channel": "8.0/edge",
+        "config": {},
+        "app_name": "mysql-router",
+    },
+    "postgresql-k8s": {
+        "charm": "pgbouncer-k8s",
+        "channel": "1/edge",
+        "config": {},
+        "app_name": "pgbouncer",
+    },
 }
 
 
@@ -64,9 +91,41 @@ DEPLOY_ALL_GROUP_MARKS = [
             marks=pytest.mark.group(f"{app}_router-{router}"),
         )
     )
+    for app in ["mysql", "postgresql", "mysql-k8s"]  # , "postgresql-k8s"]
+    for router in ([True, False] if not app.endswith("-k8s") else [True])
+]
+
+
+DEPLOY_VM_ONLY_GROUP_MARKS = [
+    (
+        pytest.param(
+            app,
+            router,
+            id=f"{app}_router-{router}",
+            marks=pytest.mark.group(f"{app}_router-{router}"),
+        )
+    )
     for app in ["mysql", "postgresql"]
     for router in [True, False]
 ]
+
+
+DEPLOY_K8S_ONLY_GROUP_MARKS = [
+    (
+        pytest.param(
+            app,
+            router,
+            id=f"{app}_router-{router}",
+            marks=pytest.mark.group(f"{app}_router-{router}"),
+        )
+    )
+    for app in ["mysql-k8s"]  # , "postgresql-k8s"] -> waiting for pgbouncer to support NodePort
+    # There is no case in k8s where we do not consume the router endpoint
+    for router in [True]
+]
+
+
+model_db = None
 
 
 def check_service(svc_name):
@@ -87,10 +146,103 @@ async def run_action(
     return SimpleNamespace(status=result.status or "completed", response=result.results)
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
+@pytest.fixture(scope="module", autouse=True)
+async def destroy_model_in_k8s(ops_test, microk8s):
+    yield
+
+    if ops_test.keep_model:
+        return
+    controller = juju.controller.Controller()
+    await controller.connect()
+    await controller.destroy_model(K8S_DB_MODEL_NAME)
+    await controller.disconnect()
+    ctlname = list(yaml.safe_load(subprocess.check_output(["juju", "show-controller"])).keys())[0]
+
+    subprocess.run(["sudo", "snap", "remove", "--purge", "microk8s"], check=True)
+    subprocess.run(["sudo", "snap", "remove", "--purge", "kubectl"], check=True)
+    subprocess.run(
+        ["juju", "remove-cloud", "--client", "--controller", ctlname, microk8s.cloud_name],
+        check=True,
+    )
+
+
+@pytest.mark.parametrize("db_driver,use_router", DEPLOY_K8S_ONLY_GROUP_MARKS)
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy(ops_test: OpsTest, db_driver, use_router) -> None:
+async def test_build_and_deploy_k8s_only(
+    ops_test: OpsTest, microk8s, db_driver, use_router
+) -> None:
+    """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
+    # Create a new model for DB on k8s:
+    logging.info(f"Creating k8s model {K8S_DB_MODEL_NAME}")
+    controller = juju.controller.Controller()
+    await controller.connect()
+    await controller.add_model(K8S_DB_MODEL_NAME, cloud_name=microk8s.cloud_name)
+    # subprocess.check_output(["juju", "add-model", K8S_DB_MODEL_NAME, microk8s.cloud_name])
+
+    global model_db
+    model_db = juju.model.Model()
+    await model_db.connect(model_name=K8S_DB_MODEL_NAME)
+
+    await model_db.deploy(
+        DB_CHARM[db_driver]["charm"],
+        application_name=DB_CHARM[db_driver]["app_name"],
+        num_units=3,
+        channel=DB_CHARM[db_driver]["channel"],
+        config=DB_CHARM[db_driver]["config"],
+    )
+    if use_router:
+        await model_db.deploy(
+            DB_ROUTER[db_driver]["charm"],
+            application_name=DB_ROUTER[db_driver]["app_name"],
+            channel=DB_ROUTER[db_driver]["channel"],
+            config=DB_ROUTER[db_driver]["config"],
+        )
+        await model_db.relate(
+            f"{DB_CHARM[db_driver]['app_name']}:database",
+            f"{DB_ROUTER[db_driver]['app_name']}",
+        )
+
+    # Now, set up the sysbench and relate to the CMR
+    charm = await ops_test.build_charm(".")
+    config = {
+        "threads": 1,
+        "tables": 1,
+        "scale": 1,
+        "duration": 0,
+    }
+    await ops_test.model.deploy(
+        charm,
+        application_name=APP_NAME,
+        num_units=1,
+        config=config,
+    )
+
+    await ops_test.model.create_offer(
+        endpoint=f"{DB_CHARM[db_driver]['app_name']}",
+        offer_name=APP_NAME,
+        application_name=APP_NAME,
+    )
+    await model_db.consume(f"admin/{ops_test.model.name}.{APP_NAME}")
+    if use_router:
+        await ops_test.model.relate(APP_NAME, f"{DB_CHARM[db_driver]['app_name']}:database")
+    else:
+        await ops_test.model.relate(APP_NAME, f"{DB_ROUTER[db_driver]['app_name']}:database")
+
+    # Reduce the update_status frequency until the cluster is deployed
+    async with ops_test.fast_forward("60s"):
+        await ops_test.model.block_until(
+            lambda: len(ops_test.model.applications[APP_NAME].units) == 1
+        )
+    await model_db.wait_for_idle(status="active")
+    await controller.disconnect()
+    await model_db.disconnect()
+
+
+@pytest.mark.parametrize("db_driver,use_router", DEPLOY_VM_ONLY_GROUP_MARKS)
+@pytest.mark.abort_on_fail
+@pytest.mark.skip_if_deployed
+async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
     charm = await ops_test.build_charm(".")
 
@@ -146,6 +298,10 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver, use_router) -> Non
             raise_on_blocked=True,
             timeout=15 * 60,
         )
+
+    # set the model to the global model_db
+    global model_db
+    model_db = ops_test.model
 
 
 @pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
