@@ -225,9 +225,9 @@ async def test_build_and_deploy_k8s_only(
     )
     await model_db.consume(f"admin/{ops_test.model.name}.{APP_NAME}")
     if use_router:
-        await ops_test.model.relate(APP_NAME, f"{DB_CHARM[db_driver]['app_name']}:database")
+        await model_db.relate(APP_NAME, f"{DB_CHARM[db_driver]['app_name']}:database")
     else:
-        await ops_test.model.relate(APP_NAME, f"{DB_ROUTER[db_driver]['app_name']}:database")
+        await model_db.relate(APP_NAME, f"{DB_ROUTER[db_driver]['app_name']}:database")
 
     # Reduce the update_status frequency until the cluster is deployed
     async with ops_test.fast_forward("60s"):
