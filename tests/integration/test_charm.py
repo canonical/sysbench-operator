@@ -288,12 +288,15 @@ async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router
         )
 
     # Reduce the update_status frequency until the cluster is deployed
+    apps = [DB_CHARM[db_driver]["app_name"]]
+    if use_router:
+        apps.append(DB_ROUTER[db_driver]["app_name"])
     async with ops_test.fast_forward("60s"):
         await ops_test.model.block_until(
             lambda: len(ops_test.model.applications[APP_NAME].units) == 1
         )
         await ops_test.model.wait_for_idle(
-            apps=[DB_CHARM[db_driver]["app_name"]],
+            apps=apps,
             status="active",
             raise_on_blocked=True,
             timeout=15 * 60,
