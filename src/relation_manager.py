@@ -83,7 +83,9 @@ class SysbenchDatabaseRequirerEventHandlers(DatabaseRequirerEventHandlers):
         super()._on_relation_changed_event(event)
 
 
-class SysbenchDatabaseRequires(SysbenchDatabaseRequirerEventHandlers):
+class SysbenchDatabaseRequires(
+    SysbenchDatabaseRequirerData, SysbenchDatabaseRequirerEventHandlers
+):
     """Overloads the DatabaseRequirerHandlers object."""
 
     def __init__(
@@ -96,7 +98,8 @@ class SysbenchDatabaseRequires(SysbenchDatabaseRequirerEventHandlers):
         additional_secret_fields: Optional[List[str]] = [],
         external_node_connectivity: bool = False,
     ):
-        req_data = SysbenchDatabaseRequirerData(
+        SysbenchDatabaseRequirerData.__init__(
+            self,
             charm.model,
             relation_name,
             database_name,
@@ -105,7 +108,7 @@ class SysbenchDatabaseRequires(SysbenchDatabaseRequirerEventHandlers):
             additional_secret_fields,
             external_node_connectivity,
         )
-        super().__init__(charm, req_data)
+        SysbenchDatabaseRequirerEventHandlers.__init__(self, charm, self)
 
 
 class NoRemoteDBUnitsAvailableError(Exception):
@@ -142,24 +145,24 @@ class DatabaseRelationManager(Object):
         self.relations = dict()
         for rel in relation_names:
             try:
-                external_conn = self._use_external_connection(rel)
                 db_name = DATABASE_NAME
-                self.relations[rel] = SysbenchDatabaseRequires(
-                    self.charm,
-                    rel,
-                    db_name,
-                    external_node_connectivity=external_conn,
-                )
-                self.framework.observe(
-                    getattr(self.relations[rel].on, "endpoints_changed"),
-                    self._on_endpoints_changed,
-                )
-                self.framework.observe(
-                    self.charm.on[rel].relation_broken, self._on_endpoints_changed
-                )
+                external_conn = self._use_external_connection(rel)
             except NoRemoteDBUnitsAvailableError:
                 # No members available yet, we should not set the DB name
-                pass
+                external_conn = False
+                db_name = None
+
+            self.relations[rel] = SysbenchDatabaseRequires(
+                self.charm,
+                rel,
+                db_name,
+                external_node_connectivity=external_conn,
+            )
+            self.framework.observe(
+                getattr(self.relations[rel].on, "endpoints_changed"),
+                self._on_endpoints_changed,
+            )
+            self.framework.observe(self.charm.on[rel].relation_broken, self._on_endpoints_changed)
 
     def _use_external_connection(self, relation_name: str) -> bool:
         if not self.charm.config.get("request-external-connectivity"):

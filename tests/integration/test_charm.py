@@ -6,8 +6,6 @@ import asyncio
 import logging
 import re
 import subprocess
-import uuid
-from pathlib import Path
 from types import SimpleNamespace
 
 import juju
@@ -16,123 +14,35 @@ import yaml
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
+from .helpers import (
+    APP_NAME,
+    DB_CHARM,
+    DB_ROUTER,
+    DEPLOY_ALL_GROUP_MARKS,
+    DEPLOY_K8S_ONLY_GROUP_MARKS,
+    DEPLOY_VM_ONLY_GROUP_MARKS,
+    DURATION,
+    K8S_DB_MODEL_NAME,
+)
+
 logger = logging.getLogger(__name__)
-
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
-APP_NAME = METADATA["name"]
-MYSQL_APP_NAME = "mysql"
-PGSQL_APP_NAME = "postgresql"
-DURATION = 10
-K8S_DB_MODEL_NAME = "database-" + str(uuid.uuid4())[0:5]
-
-
-DB_CHARM = {
-    "mysql": {
-        "charm": "mysql",
-        "channel": "8.0/edge",
-        "config": {"profile": "testing"},
-        "app_name": MYSQL_APP_NAME,
-    },
-    "postgresql": {
-        "charm": "postgresql",
-        "channel": "14/edge",
-        "config": {},
-        "app_name": PGSQL_APP_NAME,
-    },
-    "mysql-k8s": {
-        "charm": "mysql-k8s",
-        "channel": "8.0/edge",
-        "config": {"profile": "testing"},
-        "app_name": MYSQL_APP_NAME,
-    },
-    "postgresql-k8s": {
-        "charm": "postgresql-k8s",
-        "channel": "14/edge",
-        "config": {},
-        "app_name": PGSQL_APP_NAME,
-    },
-}
-
-
-DB_ROUTER = {
-    "mysql": {
-        "charm": "mysql-router",
-        "channel": "dpe/edge",
-        "config": {},
-        "app_name": "mysql-router",
-    },
-    "postgresql": {
-        "charm": "pgbouncer",
-        "channel": "1/edge",
-        "config": {},
-        "app_name": "pgbouncer",
-    },
-    "mysql-k8s": {
-        "charm": "mysql-router-k8s",
-        "channel": "8.0/edge",
-        "config": {},
-        "app_name": "mysql-router",
-    },
-    "postgresql-k8s": {
-        "charm": "pgbouncer-k8s",
-        "channel": "1/edge",
-        "config": {},
-        "app_name": "pgbouncer",
-    },
-}
-
-
-DEPLOY_ALL_GROUP_MARKS = [
-    (
-        pytest.param(
-            app,
-            router,
-            id=f"{app}_router-{router}",
-            marks=pytest.mark.group(f"{app}_router-{router}"),
-        )
-    )
-    for app in ["mysql", "postgresql", "mysql-k8s"]  # , "postgresql-k8s"]
-    for router in ([True, False] if not app.endswith("-k8s") else [True])
-]
-
-
-DEPLOY_VM_ONLY_GROUP_MARKS = [
-    (
-        pytest.param(
-            app,
-            router,
-            id=f"{app}_router-{router}",
-            marks=pytest.mark.group(f"{app}_router-{router}"),
-        )
-    )
-    for app in ["mysql", "postgresql"]
-    for router in [True, False]
-]
-
-
-DEPLOY_K8S_ONLY_GROUP_MARKS = [
-    (
-        pytest.param(
-            app,
-            router,
-            id=f"{app}_router-{router}",
-            marks=pytest.mark.group(f"{app}_router-{router}"),
-        )
-    )
-    for app in ["mysql-k8s"]  # , "postgresql-k8s"] -> waiting for pgbouncer to support NodePort
-    # There is no case in k8s where we do not consume the router endpoint
-    for router in [True]
-]
 
 
 model_db = None
 
 
-def check_service(svc_name):
-    return subprocess.check_output(
-        ["juju", "ssh", f"{APP_NAME}/0", "--", "sudo", "systemctl", "is-active", svc_name],
-        text=True,
-    )
+def check_service(svc_name: str, retry_if_fail: bool = True):
+    if not retry_if_fail:
+        return subprocess.check_output(
+            ["juju", "ssh", f"{APP_NAME}/0", "--", "sudo", "systemctl", "is-active", svc_name],
+            text=True,
+        )
+    for attempt in Retrying(stop=stop_after_delay(150), wait=wait_fixed(15)):
+        with attempt:
+            return subprocess.check_output(
+                ["juju", "ssh", f"{APP_NAME}/0", "--", "sudo", "systemctl", "is-active", svc_name],
+                text=True,
+            )
 
 
 async def run_action(
@@ -178,7 +88,6 @@ async def test_build_and_deploy_k8s_only(
     controller = juju.controller.Controller()
     await controller.connect()
     await controller.add_model(K8S_DB_MODEL_NAME, cloud_name=microk8s.cloud_name)
-    # subprocess.check_output(["juju", "add-model", K8S_DB_MODEL_NAME, microk8s.cloud_name])
 
     global model_db
     model_db = juju.model.Model()
@@ -399,25 +308,29 @@ async def test_run_action(ops_test: OpsTest, db_driver, use_router) -> None:
     assert output.status == "completed"
 
     svc_output = check_service("sysbench.service")
+    logger.info(f"sysbench.service output: {svc_output}")
+
     # Looks silly, but we "active" is in "inactive" string :(
     assert "inactive" not in svc_output and "active" in svc_output
-    # Wait until it is finished, and retry
-    await asyncio.sleep(3 * DURATION)
 
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME],
-        status="active",
-        raise_on_blocked=True,
-        timeout=15 * 60,
-    )
+    async with ops_test.fast_forward("60s"):
+        # Wait until it is finished, and retry
+        await asyncio.sleep(3 * DURATION)
 
-    try:
-        svc_output = check_service("sysbench.service")
-    except subprocess.CalledProcessError:
-        # Finished running and check_output for "systemctl is-active" will fail
-        return
-    # Did not fail, so check if we got a "inactive" in the output
-    assert "inactive" in svc_output
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME],
+            status="blocked",
+            timeout=15 * 60,
+        )
+
+        try:
+            logger.info("Checking if sysbench.service is inactive")
+            svc_output = check_service("sysbench.service", retry_if_fail=False)
+        except subprocess.CalledProcessError:
+            # Finished running and check_output for "systemctl is-active" will fail
+            return
+        # Did not fail, so check if we got a "inactive" in the output
+        assert "inactive" in svc_output
 
 
 @pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
@@ -433,17 +346,12 @@ async def test_clean_action(ops_test: OpsTest, db_driver, use_router) -> None:
         raise_on_blocked=True,
         timeout=15 * 60,
     )
-    try:
-        svc_output = check_service("sysbench.service")
-    except subprocess.CalledProcessError:
-        # Finished running and check_output for "systemctl is-active" will fail
-        pass
-    else:
-        assert "inactive" in svc_output
 
-    try:
-        svc_output = check_service("sysbench_prepared.target")
-    except subprocess.CalledProcessError:
-        # Finished running and check_output for "systemctl is-active" will fail
-        return
-    assert "inactive" in svc_output
+    for svc_name in ["sysbench.service", "sysbench_prepared.target"]:
+        try:
+            svc_output = check_service(svc_name, retry_if_fail=False)
+        except subprocess.CalledProcessError:
+            # Finished running and check_output for "systemctl is-active" will fail
+            pass
+        else:
+            assert "inactive" in svc_output
