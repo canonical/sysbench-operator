@@ -12,12 +12,8 @@ import os
 import re
 from typing import Any, Dict, List, Optional
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    DatabaseRequirerData,
-    DatabaseRequirerEventHandlers,
-)
-from ops import Model
-from ops.charm import CharmBase, CharmEvents, RelationChangedEvent, RelationCreatedEvent
+from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
+from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource, Object
 from ops.model import ModelError, Relation
 
@@ -28,96 +24,6 @@ from constants import (
     SysbenchBaseDatabaseModel,
     SysbenchExecutionModel,
 )
-
-
-class SysbenchDatabaseRequirerData(DatabaseRequirerData):
-    """Requirer-side of the database relation."""
-
-    def __init__(
-        self,
-        model: Model,
-        relation_name: str,
-        database_name: Optional[str] = "",
-        extra_user_roles: Optional[str] = None,
-        relations_aliases: Optional[List[str]] = None,
-        additional_secret_fields: Optional[List[str]] = [],
-        external_node_connectivity: bool = False,
-    ):
-        """Manager of database client relations."""
-        super().__init__(
-            model,
-            relation_name,
-            database_name,
-            extra_user_roles,
-            relations_aliases,
-            additional_secret_fields,
-            external_node_connectivity,
-        )
-        if not database_name:
-            self.database = None
-
-
-class SysbenchDatabaseRequirerEventHandlers(DatabaseRequirerEventHandlers):
-    """Overloads the _on_relation_created_event to only trigger once db name is set."""
-
-    def __init__(
-        self,
-        charm: CharmBase,
-        relation_data: Optional[DatabaseRequirerData] = None,
-        unique_key: str = "",
-    ):
-        super().__init__(charm, relation_data, unique_key)
-
-    def _on_relation_created_event(self, event: RelationCreatedEvent) -> None:
-        """Event emitted when the database relation is created."""
-        if not self.relation_data or not self.relation_data.database:
-            event.defer()
-            return
-        super()._on_relation_created_event(event)
-
-    def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
-        """Event emitted when the database relation changes."""
-        if not self.relation_data or not self.relation_data.database:
-            event.defer()
-            return
-        super()._on_relation_changed_event(event)
-
-
-class SysbenchDatabaseRequires(
-    SysbenchDatabaseRequirerData, SysbenchDatabaseRequirerEventHandlers
-):
-    """Overloads the DatabaseRequirerHandlers object."""
-
-    def __init__(
-        self,
-        charm: CharmBase,
-        relation_name: str,
-        database_name: Optional[str] = None,
-        extra_user_roles: Optional[str] = None,
-        relations_aliases: Optional[List[str]] = None,
-        additional_secret_fields: Optional[List[str]] = [],
-        external_node_connectivity: bool = False,
-    ):
-        SysbenchDatabaseRequirerData.__init__(
-            self,
-            charm.model,
-            relation_name,
-            database_name,
-            extra_user_roles,
-            relations_aliases,
-            additional_secret_fields,
-            external_node_connectivity,
-        )
-        SysbenchDatabaseRequirerEventHandlers.__init__(self, charm, self)
-
-
-class NoRemoteDBUnitsAvailableError(Exception):
-    """Reports that no remote units have been found.
-
-    It means we cannot decide if we are dealing with a CMR or not yet. We should
-    postpone the creation of DatabaseRequires with a DB name, which triggers a
-    database_requested event on the provider side.
-    """
 
 
 class DatabaseConfigUpdateNeededEvent(EventBase):
@@ -144,34 +50,17 @@ class DatabaseRelationManager(Object):
         self.charm = charm
         self.relations = dict()
         for rel in relation_names:
-            try:
-                db_name = DATABASE_NAME
-                external_conn = self._use_external_connection(rel)
-            except NoRemoteDBUnitsAvailableError:
-                # No members available yet, we should not set the DB name
-                external_conn = False
-                db_name = None
-
-            self.relations[rel] = SysbenchDatabaseRequires(
+            self.relations[rel] = DatabaseRequires(
                 self.charm,
                 rel,
-                db_name,
-                external_node_connectivity=external_conn,
+                DATABASE_NAME,
+                external_node_connectivity=self.charm.config.get("request-external-connectivity", False),
             )
             self.framework.observe(
                 getattr(self.relations[rel].on, "endpoints_changed"),
                 self._on_endpoints_changed,
             )
             self.framework.observe(self.charm.on[rel].relation_broken, self._on_endpoints_changed)
-
-    def _use_external_connection(self, relation_name: str) -> bool:
-        if not self.charm.config.get("request-external-connectivity"):
-            return False
-
-        if not (relation := self.charm.model.get_relation(relation_name)) or not relation.units:
-            raise NoRemoteDBUnitsAvailableError()
-
-        return any(re.match(r"remote\-[a-f0-9]+/", unit.name) for unit in relation.units)
 
     def relation_status(self, relation_name) -> DatabaseRelationStatusEnum:
         """Returns the current relation status."""

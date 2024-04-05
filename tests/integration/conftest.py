@@ -35,10 +35,8 @@ def ops_test(
 async def microk8s(ops_test: pytest_operator.plugin.OpsTest) -> None:
     controller = yaml.safe_load(subprocess.check_output(["juju", "show-controller"]))
 
-    for controller_name, details in controller.items():
-        controller_data = details["details"]
-        if "localhost" in controller_data["cloud"]:
-            continue
+    for controller_name in controller.keys():
+        # controller_data = details["details"]
         try:
             subprocess.run(["sudo", "snap", "install", "--classic", "microk8s"], check=True)
             subprocess.run(["sudo", "snap", "install", "--classic", "kubectl"], check=True)

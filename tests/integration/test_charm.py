@@ -99,6 +99,7 @@ async def test_build_and_deploy_k8s_only(
         num_units=3,
         channel=DB_CHARM[db_driver]["channel"],
         config=DB_CHARM[db_driver]["config"],
+        trust=True,
     )
     if use_router:
         await model_db.deploy(
@@ -106,6 +107,7 @@ async def test_build_and_deploy_k8s_only(
             application_name=DB_ROUTER[db_driver]["app_name"],
             channel=DB_ROUTER[db_driver]["channel"],
             config=DB_ROUTER[db_driver]["config"],
+            trust=True,
         )
         await model_db.relate(
             f"{DB_CHARM[db_driver]['app_name']}:database",
@@ -127,16 +129,20 @@ async def test_build_and_deploy_k8s_only(
         config=config,
     )
 
-    await ops_test.model.create_offer(
-        endpoint=f"{DB_CHARM[db_driver]['app_name']}",
-        offer_name=APP_NAME,
-        application_name=APP_NAME,
-    )
-    await model_db.consume(f"admin/{ops_test.model.name}.{APP_NAME}")
     if use_router:
-        await model_db.relate(APP_NAME, f"{DB_CHARM[db_driver]['app_name']}:database")
+        await model_db.create_offer(
+            endpoint="database",
+            offer_name="database",
+            application_name=DB_ROUTER[db_driver]['app_name'],
+        )
     else:
-        await model_db.relate(APP_NAME, f"{DB_ROUTER[db_driver]['app_name']}:database")
+        await model_db.create_offer(
+            endpoint="database",
+            offer_name="database",
+            application_name=DB_CHARM[db_driver]['app_name'],
+        )
+    await ops_test.model.consume(f"admin/{model_db.name}.database")
+    await ops_test.model.relate("database", f"{APP_NAME}:{DB_CHARM[db_driver]['app_name']}")
 
     # Reduce the update_status frequency until the cluster is deployed
     async with ops_test.fast_forward("60s"):
