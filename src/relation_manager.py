@@ -9,7 +9,6 @@ as changes in the configuration.
 """
 import json
 import os
-import re
 from typing import Any, Dict, List, Optional
 
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
