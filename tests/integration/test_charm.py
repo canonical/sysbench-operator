@@ -133,13 +133,13 @@ async def test_build_and_deploy_k8s_only(
         await model_db.create_offer(
             endpoint="database",
             offer_name="database",
-            application_name=DB_ROUTER[db_driver]['app_name'],
+            application_name=DB_ROUTER[db_driver]["app_name"],
         )
     else:
         await model_db.create_offer(
             endpoint="database",
             offer_name="database",
-            application_name=DB_CHARM[db_driver]['app_name'],
+            application_name=DB_CHARM[db_driver]["app_name"],
         )
     await ops_test.model.consume(f"admin/{model_db.name}.database")
     await ops_test.model.relate("database", f"{APP_NAME}:{DB_CHARM[db_driver]['app_name']}")
