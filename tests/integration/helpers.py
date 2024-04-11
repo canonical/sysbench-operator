@@ -31,12 +31,12 @@ DB_CHARM = {
         "config": {"profile": "testing"},
         "app_name": MYSQL_APP_NAME,
     },
-    "postgresql-k8s": {
-        "charm": "postgresql-k8s",
-        "channel": "14/edge",
-        "config": {},
-        "app_name": PGSQL_APP_NAME,
-    },
+    # "postgresql-k8s": {
+    #     "charm": "postgresql-k8s",
+    #     "channel": "14/edge",
+    #     "config": {},
+    #     "app_name": PGSQL_APP_NAME,
+    # },
 }
 
 
@@ -59,12 +59,12 @@ DB_ROUTER = {
         "config": {},
         "app_name": "mysql-router",
     },
-    "postgresql-k8s": {
-        "charm": "pgbouncer-k8s",
-        "channel": "1/edge",
-        "config": {},
-        "app_name": "pgbouncer",
-    },
+    # "postgresql-k8s": {
+    #     "charm": "pgbouncer-k8s",
+    #      "channel": "1/edge",
+    #      "config": {},
+    #      "app_name": "pgbouncer",
+    #  },
 }
 
 
