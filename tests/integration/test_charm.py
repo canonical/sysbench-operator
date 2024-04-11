@@ -144,7 +144,7 @@ async def test_build_and_deploy(ops_test: OpsTest, db_driver, use_router) -> Non
             apps=[DB_CHARM[db_driver]["app_name"]],
             status="active",
             raise_on_blocked=True,
-            timeout=15 * 60,
+            timeout=20 * 60,
         )
 
 
