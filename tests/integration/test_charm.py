@@ -33,7 +33,7 @@ DB_CHARM = {
     "postgresql": {
         "charm": "postgresql",
         "channel": "14/edge",
-        "config": {},
+        "config": {"profile": "testing"},
         "app_name": PGSQL_APP_NAME,
     },
 }
