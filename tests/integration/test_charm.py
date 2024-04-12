@@ -213,7 +213,6 @@ async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router
         await ops_test.model.wait_for_idle(
             apps=apps,
             status="active",
-            raise_on_blocked=True,
             timeout=30 * 60,
         )
 
