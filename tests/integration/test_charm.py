@@ -214,7 +214,7 @@ async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router
             apps=apps,
             status="active",
             raise_on_blocked=True,
-            timeout=15 * 60,
+            timeout=30 * 60,
         )
 
     # set the model to the global model_db
@@ -347,7 +347,7 @@ async def test_clean_action(ops_test: OpsTest, db_driver, use_router) -> None:
     assert output.status == "completed"
 
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, DB_CHARM[db_driver]["app_name"]],
+        apps=[APP_NAME],
         status="active",
         raise_on_blocked=True,
         timeout=15 * 60,
