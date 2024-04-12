@@ -9,7 +9,6 @@ as changes in the configuration.
 """
 import json
 import os
-import re
 from typing import Any, Dict, List, Optional
 
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
@@ -54,22 +53,15 @@ class DatabaseRelationManager(Object):
                 self.charm,
                 rel,
                 DATABASE_NAME,
-                external_node_connectivity=self._use_external_connection(rel),
+                external_node_connectivity=self.charm.config.get(
+                    "request-external-connectivity", False
+                ),
             )
             self.framework.observe(
                 getattr(self.relations[rel].on, "endpoints_changed"),
                 self._on_endpoints_changed,
             )
             self.framework.observe(self.charm.on[rel].relation_broken, self._on_endpoints_changed)
-
-    def _use_external_connection(self, relation_name: str) -> bool:
-        if not self.charm.config.get("request-external-connectivity"):
-            return False
-
-        if not (relation := self.charm.model.get_relation(relation_name)) or not relation.units:
-            return False
-
-        return any(re.match(r"remote\-[a-f0-9]+/", unit.name) for unit in relation.units)
 
     def relation_status(self, relation_name) -> DatabaseRelationStatusEnum:
         """Returns the current relation status."""
