@@ -10,6 +10,8 @@ import pytest_operator.plugin
 import yaml
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
+from .helpers import MICROK8S_CLOUD_NAME
+
 
 @pytest.fixture(scope="module")
 async def microk8s(ops_test: pytest_operator.plugin.OpsTest) -> None:
@@ -46,7 +48,8 @@ async def microk8s(ops_test: pytest_operator.plugin.OpsTest) -> None:
 
             # Add microk8s to the kubeconfig
             subprocess.run(
-                ["juju", "add-k8s", "cloudk8s", "--client", "--controller", ctlname], check=True
+                ["juju", "add-k8s", MICROK8S_CLOUD_NAME, "--client", "--controller", ctlname],
+                check=True,
             )
 
         except subprocess.CalledProcessError as e:
