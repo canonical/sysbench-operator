@@ -18,7 +18,7 @@ options:
     default: 0
     type: int
     description: |
-      Duration of the test, if set to 0, it does not stop.
+      Duration of the test in seconds. If set to 0, it does not stop.
   request-external-connectivity:
     default: True
     type: boolean
