@@ -10,6 +10,7 @@ MYSQL_APP_NAME = "mysql"
 PGSQL_APP_NAME = "postgresql"
 DURATION = 10
 K8S_DB_MODEL_NAME = "database-" + str(uuid.uuid4())[0:5]
+MICROK8S_CLOUD_NAME = "cloudk8s"
 
 
 DB_CHARM = {

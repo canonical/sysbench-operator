@@ -23,6 +23,7 @@ from .helpers import (
     DEPLOY_VM_ONLY_GROUP_MARKS,
     DURATION,
     K8S_DB_MODEL_NAME,
+    MICROK8S_CLOUD_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ async def run_action(
 
 
 @pytest.fixture(scope="module", autouse=True)
-async def destroy_model_in_k8s(ops_test, microk8s):
+async def destroy_model_in_k8s(ops_test):
     yield
 
     if ops_test.keep_model:
@@ -66,12 +67,14 @@ async def destroy_model_in_k8s(ops_test, microk8s):
     await controller.connect()
     await controller.destroy_model(K8S_DB_MODEL_NAME)
     await controller.disconnect()
+
     ctlname = list(yaml.safe_load(subprocess.check_output(["juju", "show-controller"])).keys())[0]
 
+    # We have deployed microk8s, and we do not need it anymore
     subprocess.run(["sudo", "snap", "remove", "--purge", "microk8s"], check=True)
     subprocess.run(["sudo", "snap", "remove", "--purge", "kubectl"], check=True)
     subprocess.run(
-        ["juju", "remove-cloud", "--client", "--controller", ctlname, microk8s.cloud_name],
+        ["juju", "remove-cloud", "--client", "--controller", ctlname, MICROK8S_CLOUD_NAME],
         check=True,
     )
 
