@@ -1,17 +1,17 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 name: sysbench
-
-
-title: Sysbench Operator
+display-name: Charmed Sysbench
 
 summary: Generates a load against your workload and collect metrics in Prometheus.
-
-
 description: |
   Run this charm to connect with a mysql deployment and test the performance or generate a load against the cluster.
-
 docs: https://discourse.charmhub.io/t/charmed-sysbench-documentation-home/13945
+source: https://github.com/canonical/sysbench-operator
+issues: https://github.com/canonical/sysbench-operator/issues
+website: https://charmhub.io/sysbench
+maintainers:
+  - Canonical Data Platform <data-platform@lists.launchpad.net>
 
 series:
 - jammy
