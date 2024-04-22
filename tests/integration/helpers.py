@@ -32,12 +32,12 @@ DB_CHARM = {
         "config": {"profile": "testing"},
         "app_name": MYSQL_APP_NAME,
     },
-    # "postgresql-k8s": {
-    #     "charm": "postgresql-k8s",
-    #     "channel": "14/edge",
-    #     "config": {},
-    #     "app_name": PGSQL_APP_NAME,
-    # },
+    "postgresql-k8s": {
+        "charm": "postgresql-k8s",
+        "channel": "14/edge",
+        "config": {"profile": "testing"},
+        "app_name": PGSQL_APP_NAME,
+    },
 }
 
 
@@ -60,12 +60,12 @@ DB_ROUTER = {
         "config": {},
         "app_name": "mysql-router",
     },
-    # "postgresql-k8s": {
-    #     "charm": "pgbouncer-k8s",
-    #      "channel": "1/edge",
-    #      "config": {},
-    #      "app_name": "pgbouncer",
-    #  },
+    "postgresql-k8s": {
+        "charm": "pgbouncer-k8s",
+        "channel": "1/edge",
+        "config": {},
+        "app_name": "pgbouncer",
+    },
 }
 
 
@@ -78,7 +78,7 @@ DEPLOY_ALL_GROUP_MARKS = [
             marks=pytest.mark.group(f"{app}_router-{router}"),
         )
     )
-    for app in ["mysql", "postgresql", "mysql-k8s"]  # , "postgresql-k8s"]
+    for app in ["mysql", "postgresql", "mysql-k8s", "postgresql-k8s"]
     for router in ([True, False] if not app.endswith("-k8s") else [True])
 ]
 
@@ -106,7 +106,6 @@ DEPLOY_K8S_ONLY_GROUP_MARKS = [
             marks=pytest.mark.group(f"{app}_router-{router}"),
         )
     )
-    for app in ["mysql-k8s"]  # , "postgresql-k8s"] -> waiting for pgbouncer to support NodePort
-    # There is no case in k8s where we do not consume the router endpoint
+    for app in ["mysql-k8s", "postgresql-k8s"]
     for router in [True]
 ]
