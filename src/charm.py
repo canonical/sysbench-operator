@@ -301,16 +301,14 @@ class SysbenchOperator(ops.CharmBase):
                 f"Failed: app level reports {self.sysbench_status.app_status()} and service level reports {self.sysbench_status.service_status()}"
             )
             return
+        svc = SysbenchService()
         if status == SysbenchExecStatusEnum.UNSET:
-            event.fail("Nothing to do, sysbench units are idle")
-            return
+            logger.warning("Sysbench units are idle, but continuing anyways")
         if status == SysbenchExecStatusEnum.RUNNING:
-            SysbenchService().stop()
             logger.info("Sysbench service stopped in clean action")
+            svc.stop()
 
         self.unit.status = ops.model.MaintenanceStatus("Cleaning up database")
-        svc = SysbenchService()
-        svc.stop()
         try:
             self._execute_sysbench_cmd(self.labels, "clean")
         except SysbenchMissingOptionsError:
