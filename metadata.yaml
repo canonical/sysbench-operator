@@ -13,11 +13,6 @@ website: https://charmhub.io/sysbench
 maintainers:
   - Canonical Data Platform <data-platform@lists.launchpad.net>
 
-series:
-- jammy
-- lunar
-- mantic
-
 peers:
   benchmark-peer:
     interface: sysbench_peers
