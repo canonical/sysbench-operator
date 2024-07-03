@@ -74,7 +74,7 @@ juju = "^3.2.2"
 ops = "^2.12.0"
 tenacity = "^8.2.3"
 pyyaml = "^6.0.1"
-urllib3 = "^2.2.1"
+urllib3 = "^2.2.2"
 protobuf = "5.26.1"
 
 [tool.coverage.run]
