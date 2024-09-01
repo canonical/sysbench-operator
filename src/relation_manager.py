@@ -167,9 +167,11 @@ class SysbenchOptionsFactory(Object):
     def relation_data(self):
         """Returns the relation data."""
         relation = self.charm.model.relations[self.relation_name][0]
-        return self.selffetch_relation_data(
-            [relation.id], ["username", "password", "endpoints", "database"]
-        ).get(relation.id, {})
+        return (
+            self.relations[self.relation_name]
+            .fetch_relation_data([relation.id], ["username", "password", "endpoints", "database"])
+            .get(relation.id, {})
+        )
 
     def get_database_options(self) -> Dict[str, Any]:
         """Returns the database options."""
