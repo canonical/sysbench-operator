@@ -8,6 +8,7 @@ The charm interacts with the manager and requests data + listen to some key even
 as changes in the configuration.
 """
 import json
+import logging
 import os
 from typing import Any, Dict, List, Optional
 
@@ -23,6 +24,8 @@ from constants import (
     SysbenchBaseDatabaseModel,
     SysbenchExecutionModel,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseConfigUpdateNeededEvent(EventBase):
@@ -76,7 +79,7 @@ class DatabaseRelationManager(Object):
             try:
                 SysbenchOptionsFactory(self.charm, relation_name).get_database_options()
             except Exception:
-                pass
+                logger.exception("Failed to construct database options")
             else:
                 # We have data to build the config object
                 return DatabaseRelationStatusEnum.CONFIGURED
@@ -98,7 +101,8 @@ class DatabaseRelationManager(Object):
         try:
             _ = repr(relation.data)
             return True
-        except (RuntimeError, ModelError):
+        except (RuntimeError, ModelError) as e:
+            logger.debug("Failed relation status check %s" % e)
             return False
 
     def get_db_config(self) -> Optional[SysbenchBaseDatabaseModel]:
