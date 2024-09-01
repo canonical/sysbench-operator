@@ -230,9 +230,9 @@ async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
     """Validate the prepare action."""
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME],
-        status="waiting",
+        status="active",
         raise_on_blocked=False,
-        timeout=15 * 60,
+        timeout=100,
     )
 
     output = await run_action(ops_test, "prepare", f"{APP_NAME}/0")
