@@ -81,7 +81,6 @@ class DatabaseRelationManager(Object):
                 ).get_database_options()
             except Exception:
                 logger.exception("Failed to construct database options")
-                return DatabaseRelationStatusEnum.NOT_AVAILABLE
             else:
                 # We have data to build the config object
                 return DatabaseRelationStatusEnum.CONFIGURED
@@ -101,8 +100,13 @@ class DatabaseRelationManager(Object):
     def _is_relation_active(self, relation: Relation):
         """Whether the relation is active based on contained data."""
         try:
-            _ = repr(relation.data)
-            return True
+            data = SysbenchOptionsFactory(self.charm, self.relations[relation.name]).relation_data
+            return (
+                data.get("username")
+                and data.get("password")
+                and data.get("database")
+                and data.get("endpoints")
+            )
         except (RuntimeError, ModelError) as e:
             logger.debug("Failed relation status check %s" % e)
             return False
