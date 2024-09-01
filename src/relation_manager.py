@@ -72,19 +72,20 @@ class DatabaseRelationManager(Object):
             raise MultipleRelationsToDBError()
         elif len(relation) == 0:
             return DatabaseRelationStatusEnum.NOT_AVAILABLE
-        if self._is_relation_active(relation[0]):
-            # Relation exists and we have some data
-            # Try to create an options object and see if it fails
-            try:
-                SysbenchOptionsFactory(
-                    self.charm, self.relations[relation_name]
-                ).get_database_options()
-            except Exception:
-                logger.exception("Failed to construct database options")
-            else:
-                # We have data to build the config object
-                return DatabaseRelationStatusEnum.CONFIGURED
-        return DatabaseRelationStatusEnum.AVAILABLE
+        if not self._is_relation_active(relation[0]):
+            return DatabaseRelationStatusEnum.NOT_AVAILABLE
+        # Relation exists and we have some data
+        # Try to create an options object and see if it fails
+        try:
+            SysbenchOptionsFactory(
+                self.charm, self.relations[relation_name]
+            ).get_database_options()
+        except Exception:
+            logger.exception("Failed to construct database options")
+            return DatabaseRelationStatusEnum.AVAILABLE
+        else:
+            # We have data to build the config object
+            return DatabaseRelationStatusEnum.CONFIGURED
 
     def check(self) -> DatabaseRelationStatusEnum:
         """Returns the current status of all the relations, aggregated."""
