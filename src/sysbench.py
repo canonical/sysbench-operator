@@ -3,6 +3,7 @@
 
 """This module contains the sysbench service and status classes."""
 
+import logging
 import os
 import shutil
 import subprocess
@@ -25,6 +26,8 @@ from constants import (
     SysbenchExecutionModel,
     SysbenchIsInWrongStateError,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _render(src_template_file: str, dst_filepath: str, values: Dict[str, Any]):
@@ -93,7 +96,8 @@ class SysbenchService:
                 ],
                 text=True,
             )
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed is_prepared check: %s" % e)
             return False
 
     def finished_preparing(self) -> bool:
@@ -103,7 +107,8 @@ class SysbenchService:
                 f"templates/{self.ready_target}", f"/etc/systemd/system/{self.ready_target}"
             )
             return daemon_reload() and service_restart(self.ready_target)
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed finished_preparing: %s" % e)
             return False
 
     def is_running(self) -> bool:
@@ -143,7 +148,8 @@ class SysbenchService:
             os.remove(f"/etc/systemd/system/{self.ready_target}")
             os.remove(self.svc_path)
             return daemon_reload() and result
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed unestting: %s" % e)
             pass
 
 
