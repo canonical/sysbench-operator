@@ -72,20 +72,17 @@ class DatabaseRelationManager(Object):
             raise MultipleRelationsToDBError()
         elif len(relation) == 0:
             return DatabaseRelationStatusEnum.NOT_AVAILABLE
-        if not self._is_relation_active(relation[0]):
-            return DatabaseRelationStatusEnum.NOT_AVAILABLE
-        # Relation exists and we have some data
-        # Try to create an options object and see if it fails
-        try:
-            SysbenchOptionsFactory(
-                self.charm, self.relations[relation_name]
-            ).get_database_options()
-        except Exception:
-            logger.exception("Failed to construct database options")
-            return DatabaseRelationStatusEnum.AVAILABLE
-        else:
-            # We have data to build the config object
-            return DatabaseRelationStatusEnum.CONFIGURED
+        if self._is_relation_active(relation[0]):
+            # Relation exists and we have some data
+            # Try to create an options object and see if it fails
+            try:
+                SysbenchOptionsFactory(self.charm, relation_name).get_database_options()
+            except Exception as e:
+                logger.debug("Failed relation options check %s" % e)
+            else:
+                # We have data to build the config object
+                return DatabaseRelationStatusEnum.CONFIGURED
+        return DatabaseRelationStatusEnum.AVAILABLE
 
     def check(self) -> DatabaseRelationStatusEnum:
         """Returns the current status of all the relations, aggregated."""
@@ -101,13 +98,8 @@ class DatabaseRelationManager(Object):
     def _is_relation_active(self, relation: Relation):
         """Whether the relation is active based on contained data."""
         try:
-            data = SysbenchOptionsFactory(self.charm, self.relations[relation.name]).relation_data
-            return (
-                data.get("username")
-                and data.get("password")
-                and data.get("database")
-                and data.get("endpoints")
-            )
+            _ = repr(relation.data)
+            return True
         except (RuntimeError, ModelError) as e:
             logger.debug("Failed relation status check %s" % e)
             return False
@@ -174,10 +166,7 @@ class SysbenchOptionsFactory(Object):
     @property
     def relation_data(self):
         """Returns the relation data."""
-        relation = self.charm.model.relations[self.database_relation.relation_name][0]
-        return self.database_relation.fetch_relation_data(
-            [relation.id], ["username", "password", "endpoints", "database"]
-        ).get(relation.id, {})
+        return list(self.database_relation.fetch_relation_data().values())[0]
 
     def get_database_options(self) -> Dict[str, Any]:
         """Returns the database options."""
