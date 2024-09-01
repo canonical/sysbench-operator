@@ -76,7 +76,9 @@ class DatabaseRelationManager(Object):
             # Relation exists and we have some data
             # Try to create an options object and see if it fails
             try:
-                SysbenchOptionsFactory(self.charm, relation_name).get_database_options()
+                SysbenchOptionsFactory(
+                    self.charm, self.relations[relation_name]
+                ).get_database_options()
             except Exception:
                 logger.exception("Failed to construct database options")
             else:
@@ -111,9 +113,9 @@ class DatabaseRelationManager(Object):
         data of the first valid relation or just returns None. The error above must be used
         to manage the final status of the charm only.
         """
-        for rel in self.relations.keys():
+        for rel, requirer in self.relations.items():
             if self.relation_status(rel) == DatabaseRelationStatusEnum.CONFIGURED:
-                return SysbenchOptionsFactory(self.charm, rel).get_database_options()
+                return SysbenchOptionsFactory(self.charm, requirer).get_database_options()
 
         return None
 
@@ -159,19 +161,17 @@ class SysbenchOptionsFactory(Object):
     It uses the data coming from both relation and config.
     """
 
-    def __init__(self, charm, relation_name):
+    def __init__(self, charm, database_relation):
         self.charm = charm
-        self.relation_name = relation_name
+        self.database_relation = database_relation
 
     @property
     def relation_data(self):
         """Returns the relation data."""
-        relation = self.charm.model.relations[self.relation_name][0]
-        return (
-            self.relations[self.relation_name]
-            .fetch_relation_data([relation.id], ["username", "password", "endpoints", "database"])
-            .get(relation.id, {})
-        )
+        relation = self.charm.model.relations[self.database_relation.relation_name][0]
+        return self.database_relation.fetch_relation_data(
+            [relation.id], ["username", "password", "endpoints", "database"]
+        ).get(relation.id, {})
 
     def get_database_options(self) -> Dict[str, Any]:
         """Returns the database options."""
