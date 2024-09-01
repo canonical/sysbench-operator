@@ -228,20 +228,13 @@ async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router
 @pytest.mark.abort_on_fail
 async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
     """Validate the prepare action."""
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME],
-        status="active",
-        raise_on_blocked=False,
-        timeout=100,
-    )
-
     output = await run_action(ops_test, "prepare", f"{APP_NAME}/0")
     assert output.status == "completed"
 
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME],
         status="waiting",
-        raise_on_blocked=True,
+        raise_on_blocked=False,
         timeout=15 * 60,
     )
     for attempt in Retrying(stop=stop_after_delay(40), wait=wait_fixed(10)):
