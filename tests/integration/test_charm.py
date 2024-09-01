@@ -234,7 +234,7 @@ async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME],
         status="waiting",
-        raise_on_blocked=False,
+        raise_on_blocked=True,
         timeout=15 * 60,
     )
     for attempt in Retrying(stop=stop_after_delay(40), wait=wait_fixed(10)):
