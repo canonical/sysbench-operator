@@ -7,7 +7,6 @@ The DatabaseRelationManager listens to DB events and manages the relation lifecy
 The charm interacts with the manager and requests data + listen to some key events such
 as changes in the configuration.
 """
-import json
 import logging
 import os
 from typing import Any, Dict, List, Optional
@@ -161,20 +160,20 @@ class SysbenchOptionsFactory(Object):
     """
 
     def __init__(self, charm, relation_name):
-        super().__init__(charm, relation_name)
         self.charm = charm
         self.relation_name = relation_name
 
     @property
     def relation_data(self):
         """Returns the relation data."""
-        return self.charm.model.get_relation(self.relation_name).data
+        relation = self.charm.model.relations[self.relation_name][0]
+        return self.selffetch_relation_data(
+            [relation.id], ["username", "password", "endpoints", "database"]
+        ).get(relation.id, {})
 
     def get_database_options(self) -> Dict[str, Any]:
         """Returns the database options."""
-        raw = json.loads(self.relation_data[self.charm.unit]["data"])
-        endpoints = raw.get("endpoints")
-        credentials = self.framework.model.get_secret(id=raw.get("secret-user")).get_content()
+        endpoints = self.relation_data.get("endpoints")
 
         unix_socket, host, port = None, None, None
         if endpoints.startswith("file://"):
@@ -186,9 +185,9 @@ class SysbenchOptionsFactory(Object):
             host=host,
             port=port,
             unix_socket=unix_socket,
-            username=credentials.get("username"),
-            password=credentials.get("password"),
-            db_name=raw.get("database"),
+            username=self.relation_data.get("username"),
+            password=self.relation_data.get("password"),
+            db_name=self.relation_data.get("database"),
             tables=self.charm.config.get("tables"),
             scale=self.charm.config.get("scale"),
         )
