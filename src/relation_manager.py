@@ -76,7 +76,9 @@ class DatabaseRelationManager(Object):
             # Relation exists and we have some data
             # Try to create an options object and see if it fails
             try:
-                SysbenchOptionsFactory(self.charm, relation_name).get_database_options()
+                SysbenchOptionsFactory(
+                    self.charm, self.relations[relation_name]
+                ).get_database_options()
             except Exception as e:
                 logger.debug("Failed relation options check %s" % e)
             else:
