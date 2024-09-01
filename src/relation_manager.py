@@ -81,6 +81,7 @@ class DatabaseRelationManager(Object):
                 ).get_database_options()
             except Exception:
                 logger.exception("Failed to construct database options")
+                return DatabaseRelationStatusEnum.NOT_AVAILABLE
             else:
                 # We have data to build the config object
                 return DatabaseRelationStatusEnum.CONFIGURED
