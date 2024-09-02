@@ -96,8 +96,7 @@ class SysbenchService:
                 ],
                 text=True,
             )
-        except Exception as e:
-            logger.debug("Failed is_prepared check: %s" % e)
+        except Exception:
             return False
 
     def finished_preparing(self) -> bool:
@@ -117,6 +116,10 @@ class SysbenchService:
 
     def is_stopped(self) -> bool:
         """Checks if the sysbench service has stopped."""
+        logger.error(f"is prepared: {self.is_prepared()}")
+        logger.error(f"path exists: {os.path.exists(self.svc_path)}")
+        logger.error(f"is running: {self.is_running()}")
+        logger.error(f"is failed: {self.is_failed()}")
         return (
             self.is_prepared()
             and os.path.exists(self.svc_path)
@@ -148,8 +151,7 @@ class SysbenchService:
             os.remove(f"/etc/systemd/system/{self.ready_target}")
             os.remove(self.svc_path)
             return daemon_reload() and result
-        except Exception as e:
-            logger.debug("Failed unestting: %s" % e)
+        except Exception:
             pass
 
 
