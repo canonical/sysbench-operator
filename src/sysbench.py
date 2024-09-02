@@ -3,7 +3,6 @@
 
 """This module contains the sysbench service and status classes."""
 
-import logging
 import os
 import shutil
 import subprocess
@@ -26,8 +25,6 @@ from constants import (
     SysbenchExecutionModel,
     SysbenchIsInWrongStateError,
 )
-
-logger = logging.getLogger(__name__)
 
 
 def _render(src_template_file: str, dst_filepath: str, values: Dict[str, Any]):
@@ -106,8 +103,7 @@ class SysbenchService:
                 f"templates/{self.ready_target}", f"/etc/systemd/system/{self.ready_target}"
             )
             return daemon_reload() and service_restart(self.ready_target)
-        except Exception as e:
-            logger.debug("Failed finished_preparing: %s" % e)
+        except Exception:
             return False
 
     def is_running(self) -> bool:
@@ -116,10 +112,6 @@ class SysbenchService:
 
     def is_stopped(self) -> bool:
         """Checks if the sysbench service has stopped."""
-        logger.error(f"is prepared: {self.is_prepared()}")
-        logger.error(f"path exists: {os.path.exists(self.svc_path)}")
-        logger.error(f"is running: {self.is_running()}")
-        logger.error(f"is failed: {self.is_failed()}")
         return (
             self.is_prepared()
             and os.path.exists(self.svc_path)
