@@ -123,19 +123,16 @@ class SysbenchOperator(ops.CharmBase):
 
     def _on_config_changed(self, _):
         # For now, ignore the configuration
-        svc_was_running = False
         svc = SysbenchService()
         if svc.is_running():
             # Nothing to do, there was no setup yet
-            svc_was_running = True
             svc.stop()
-        if not (options := self.database.get_execution_options()):
-            # Nothing to do, we can abandon this event and wait for the next changes
-            return
-        svc.render_service_file(
-            self.database.script(), self.database.chosen_db_type(), options, labels=self.labels
-        )
-        if svc_was_running:
+            if not (options := self.database.get_execution_options()):
+                # Nothing to do, we can abandon this event and wait for the next changes
+                return
+            svc.render_service_file(
+                self.database.script(), self.database.chosen_db_type(), options, labels=self.labels
+            )
             svc.run()
 
     def _on_relation_broken(self, _):
