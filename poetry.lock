@@ -838,12 +838,12 @@ referencing = ">=0.31.0"
 
 [[package]]
 name = "juju"
-version = "3.4.0.0"
+version = "3.5.2.0"
 description = "Python library for Juju"
 optional = false
 python-versions = "*"
 files = [
-    {file = "juju-3.4.0.0.tar.gz", hash = "sha256:5b883446ca0977c1255b0876ed5d2eab01cffaf03a8c77cfd768975264abef3d"},
+    {file = "juju-3.5.2.0.tar.gz", hash = "sha256:dd9a36330e63acd8f62bf478fd7e385e51f44dc3918e7a67d0593fd054e1e80a"},
 ]
 
 [package.dependencies]
@@ -2152,4 +2152,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e160cc60e17ab1ee11f6a0402fecef2b5c8a8ba3270b561961a52632aa3f8920"
+content-hash = "8e08fd1cbcffb72fc050bac4e06bccc578638bf69443d02b84a9b79c031de446"
