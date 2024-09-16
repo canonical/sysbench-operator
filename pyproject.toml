@@ -17,7 +17,7 @@ overrides = "7.7.0"
 requests = "2.32.3"
 shortuuid = "1.0.13"
 pydantic = "^1.10, <2"
-cryptography = "^42.0.5"
+cryptography = "^43.0.0"
 jsonschema = "^4.21.1"
 
 
@@ -28,7 +28,7 @@ ops = ">=2.0.0"
 # grafana_agent/v0/cos_agent.py requires pydantic <2
 pydantic = "^1.10, <2"
 # tls_certificates_interface/v1/tls_certificates.py
-cryptography = "^42.0.5"
+cryptography = "^43.0.0"
 jsonschema = "^4.21.1"
 # grafana_agent/v0/cos_agent.py
 cosl = ">=0.0.7"
