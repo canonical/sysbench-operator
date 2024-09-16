@@ -7,6 +7,7 @@ The DatabaseRelationManager listens to DB events and manages the relation lifecy
 The charm interacts with the manager and requests data + listen to some key events such
 as changes in the configuration.
 """
+
 import logging
 import os
 from typing import Any, Dict, List, Optional
@@ -49,7 +50,7 @@ class DatabaseRelationManager(Object):
     def __init__(self, charm: CharmBase, relation_names: List[str]):
         super().__init__(charm, None)
         self.charm = charm
-        self.relations = dict()
+        self.relations = {}
         for rel in relation_names:
             self.relations[rel] = DatabaseRequires(
                 self.charm,
@@ -147,10 +148,10 @@ class DatabaseRelationManager(Object):
 
     def script(self) -> Optional[str]:
         """Returns the script path for the chosen DB."""
-        type = self.chosen_db_type()
-        if type == "mysql":
+        db_type = self.chosen_db_type()
+        if db_type == "mysql":
             return str(os.path.abspath("scripts/mysql.lua"))
-        elif type == "postgresql":
+        elif db_type == "postgresql":
             return str(os.path.abspath("scripts/pgsql.lua"))
         return None
 
