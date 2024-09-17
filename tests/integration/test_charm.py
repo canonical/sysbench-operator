@@ -289,9 +289,16 @@ async def test_run_action_and_cause_failure(ops_test: OpsTest, db_driver, use_ro
 
     # Finally, check if the service is now in a failed state in systemd
     try:
-        subprocess.check_output(
-            ["juju", "ssh", f"{APP_NAME}/0", "--", "sudo", "systemctl", "is-failed", svc]
-        )
+        subprocess.check_output([
+            "juju",
+            "ssh",
+            f"{APP_NAME}/0",
+            "--",
+            "sudo",
+            "systemctl",
+            "is-failed",
+            svc,
+        ])
     except subprocess.CalledProcessError as e:
         # We expect "is-failed" to succeed, i.e. we have a failed service
         raise AssertionError(f"Service {svc} is not in a failed state") from e
