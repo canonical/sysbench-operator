@@ -1281,8 +1281,8 @@ pytest = "*"
 [package.source]
 type = "git"
 url = "https://github.com/canonical/data-platform-workflows"
-reference = "v18.0.0"
-resolved_reference = "da8bb57d6a9650fef8683cb76f233cd672f63db5"
+reference = "v21.0.1"
+resolved_reference = "06f252ea079edfd055cee236ede28c237467f9b0"
 subdirectory = "python/pytest_plugins/microceph"
 
 [[package]]
@@ -1907,4 +1907,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4ec0d1f0466afed6159b96cc8894a57f1120cc19d9d3f7db25259ab7c78acdba"
+content-hash = "5b249756fd4787a7ea594036b6b9c44f1674740a64a82b0ea1a934bf5ef7707e"
