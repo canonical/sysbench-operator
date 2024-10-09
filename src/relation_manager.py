@@ -7,7 +7,8 @@ The DatabaseRelationManager listens to DB events and manages the relation lifecy
 The charm interacts with the manager and requests data + listen to some key events such
 as changes in the configuration.
 """
-import json
+
+import logging
 import os
 from typing import Any, Dict, List, Optional
 
@@ -23,6 +24,8 @@ from constants import (
     SysbenchBaseDatabaseModel,
     SysbenchExecutionModel,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseConfigUpdateNeededEvent(EventBase):
@@ -47,7 +50,7 @@ class DatabaseRelationManager(Object):
     def __init__(self, charm: CharmBase, relation_names: List[str]):
         super().__init__(charm, None)
         self.charm = charm
-        self.relations = dict()
+        self.relations = {}
         for rel in relation_names:
             self.relations[rel] = DatabaseRequires(
                 self.charm,
@@ -74,9 +77,11 @@ class DatabaseRelationManager(Object):
             # Relation exists and we have some data
             # Try to create an options object and see if it fails
             try:
-                SysbenchOptionsFactory(self.charm, relation_name).get_database_options()
-            except Exception:
-                pass
+                SysbenchOptionsFactory(
+                    self.charm, self.relations[relation_name]
+                ).get_database_options()
+            except Exception as e:
+                logger.debug("Failed relation options check %s" % e)
             else:
                 # We have data to build the config object
                 return DatabaseRelationStatusEnum.CONFIGURED
@@ -98,7 +103,8 @@ class DatabaseRelationManager(Object):
         try:
             _ = repr(relation.data)
             return True
-        except (RuntimeError, ModelError):
+        except (RuntimeError, ModelError) as e:
+            logger.debug("Failed relation status check %s" % e)
             return False
 
     def get_db_config(self) -> Optional[SysbenchBaseDatabaseModel]:
@@ -108,9 +114,9 @@ class DatabaseRelationManager(Object):
         data of the first valid relation or just returns None. The error above must be used
         to manage the final status of the charm only.
         """
-        for rel in self.relations.keys():
+        for rel, requirer in self.relations.items():
             if self.relation_status(rel) == DatabaseRelationStatusEnum.CONFIGURED:
-                return SysbenchOptionsFactory(self.charm, rel).get_database_options()
+                return SysbenchOptionsFactory(self.charm, requirer).get_database_options()
 
         return None
 
@@ -142,10 +148,10 @@ class DatabaseRelationManager(Object):
 
     def script(self) -> Optional[str]:
         """Returns the script path for the chosen DB."""
-        type = self.chosen_db_type()
-        if type == "mysql":
+        db_type = self.chosen_db_type()
+        if db_type == "mysql":
             return str(os.path.abspath("scripts/mysql.lua"))
-        elif type == "postgresql":
+        elif db_type == "postgresql":
             return str(os.path.abspath("scripts/pgsql.lua"))
         return None
 
@@ -156,21 +162,18 @@ class SysbenchOptionsFactory(Object):
     It uses the data coming from both relation and config.
     """
 
-    def __init__(self, charm, relation_name):
-        super().__init__(charm, relation_name)
+    def __init__(self, charm, database_relation):
         self.charm = charm
-        self.relation_name = relation_name
+        self.database_relation = database_relation
 
     @property
     def relation_data(self):
         """Returns the relation data."""
-        return self.charm.model.get_relation(self.relation_name).data
+        return list(self.database_relation.fetch_relation_data().values())[0]
 
     def get_database_options(self) -> Dict[str, Any]:
         """Returns the database options."""
-        raw = json.loads(self.relation_data[self.charm.unit]["data"])
-        endpoints = raw.get("endpoints")
-        credentials = self.framework.model.get_secret(id=raw.get("secret-user")).get_content()
+        endpoints = self.relation_data.get("endpoints")
 
         unix_socket, host, port = None, None, None
         if endpoints.startswith("file://"):
@@ -182,9 +185,9 @@ class SysbenchOptionsFactory(Object):
             host=host,
             port=port,
             unix_socket=unix_socket,
-            username=credentials.get("username"),
-            password=credentials.get("password"),
-            db_name=raw.get("database"),
+            username=self.relation_data.get("username"),
+            password=self.relation_data.get("password"),
+            db_name=self.relation_data.get("database"),
             tables=self.charm.config.get("tables"),
             scale=self.charm.config.get("scale"),
         )
