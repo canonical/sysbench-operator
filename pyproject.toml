@@ -50,7 +50,7 @@ shellcheck-py = "^0.10.0.1"
 [tool.poetry.group.unit.dependencies]
 pytest = "^8.3.3"
 pytest-asyncio = "*"
-coverage = {extras = ["toml"], version = "^7.6.2"}
+coverage = {extras = ["toml"], version = "^7.6.3"}
 parameterized = "^0.9.0"
 
 [tool.poetry.group.integration.dependencies]
