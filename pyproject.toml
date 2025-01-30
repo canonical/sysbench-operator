@@ -14,7 +14,6 @@ overrides = "7.7.0"
 requests = "2.32.3"
 shortuuid = "1.0.13"
 pydantic = "^1.10.19, <2"
-cryptography = "^43.0.3"
 jsonschema = "^4.23.0"
 
 
@@ -24,12 +23,8 @@ ops = ">=2.0.0"
 # data_platform_libs/v0/upgrade.py
 # grafana_agent/v0/cos_agent.py requires pydantic <2
 pydantic = "^1.10, <2"
-# tls_certificates_interface/v1/tls_certificates.py
-cryptography = "^43.0.0"
-jsonschema = "^4.21.1"
 # grafana_agent/v0/cos_agent.py
-cosl = ">=0.0.7"
-bcrypt = ">=4.0.1"
+cosl = ">=0.0.50"
 
 [tool.poetry.group.format]
 optional = true
