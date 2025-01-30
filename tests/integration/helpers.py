@@ -60,7 +60,7 @@ DB_ROUTER = {
     "mysql-k8s": {
         "charm": "mysql-router-k8s",
         "channel": "8.0/edge",
-        "config": {},
+        "config": {"expose-external": "nodeport"},
         "app_name": "mysql-router",
     },
     "postgresql-k8s": {
