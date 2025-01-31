@@ -58,7 +58,7 @@ jobs:
     name: Build charm
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.4
     with:
-      cache: false  # TODO: will change to `true` afte cache is reenabled
+      cache: false  # TODO: will remove after cache is reenabled
 
   integration-test:
     name: Integration test charm
