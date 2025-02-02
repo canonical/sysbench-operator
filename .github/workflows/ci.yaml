@@ -20,7 +20,7 @@ on:
 jobs:
   lint:
     name: Lint
-    uses: canonical/data-platform-workflows/.github/workflows/lint.yaml@v29.0.4
+    uses: canonical/data-platform-workflows/.github/workflows/lint.yaml@v29.0.5
 
   # unit-test:
   #   name: Unit test charm
@@ -47,7 +47,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Check libs
-        uses: canonical/charming-actions/check-libraries@2.6.3
+        uses: canonical/charming-actions/check-libraries@2.7.0
         with:
           credentials: ${{ secrets.CHARMHUB_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -56,7 +56,7 @@ jobs:
 
   build:
     name: Build charm
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.4
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.5
 
   integration-test:
     name: Integration test charm
@@ -64,7 +64,7 @@ jobs:
       - lint
 #      - unit-test
       - build
-    uses: canonical/data-platform-workflows/.github/workflows/integration_test_charm.yaml@v29.0.4
+    uses: canonical/data-platform-workflows/.github/workflows/integration_test_charm.yaml@v29.0.5
     with:
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
       cloud: lxd
