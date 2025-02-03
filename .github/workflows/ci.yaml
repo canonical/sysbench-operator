@@ -57,8 +57,6 @@ jobs:
   build:
     name: Build charm
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.5
-    with:
-      cache: false  # TODO: will remove after cache is reenabled
 
   integration-test:
     name: Integration test charm
@@ -70,4 +68,4 @@ jobs:
     with:
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
       cloud: lxd
-      juju-snap-channel: 3.4/stable
+      juju-snap-channel: 3.6/stable
