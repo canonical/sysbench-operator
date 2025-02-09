@@ -66,7 +66,7 @@ DB_ROUTER = {
     "postgresql-k8s": {
         "charm": "pgbouncer-k8s",
         "channel": "1/edge",
-        "config": {},
+        "config": {"expose-external": "nodeport"},
         "app_name": "pgbouncer",
     },
 }
