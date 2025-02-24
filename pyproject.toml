@@ -30,7 +30,7 @@ cosl = ">=0.0.50"
 optional = true
 
 [tool.poetry.group.format.dependencies]
-ruff = "^0.9.6"
+ruff = "^0.9.7"
 
 [tool.poetry.group.lint]
 optional = true
