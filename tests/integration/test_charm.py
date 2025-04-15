@@ -111,6 +111,7 @@ async def test_build_and_deploy_k8s_only(
             channel=DB_ROUTER[db_driver]["channel"],
             config=DB_ROUTER[db_driver]["config"],
             trust=True,
+            series="jammy",
         )
         await model_db.relate(
             f"{DB_CHARM[db_driver]['app_name']}:database",
@@ -193,6 +194,7 @@ async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router
             application_name=DB_ROUTER[db_driver]["app_name"],
             channel=DB_ROUTER[db_driver]["channel"],
             config=DB_ROUTER[db_driver]["config"],
+            series="jammy",
         )
         await ops_test.model.relate(
             f"{APP_NAME}:{db_driver}", f"{DB_ROUTER[db_driver]['app_name']}"
