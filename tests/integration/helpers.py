@@ -50,12 +50,14 @@ DB_ROUTER = {
         "channel": "dpe/edge",
         "config": {},
         "app_name": "mysql-router",
+        "series": "jammy",
     },
     "postgresql": {
         "charm": "pgbouncer",
         "channel": "1/edge",
         "config": {},
         "app_name": "pgbouncer",
+        "series": "jammy",
     },
     "mysql-k8s": {
         "charm": "mysql-router-k8s",
