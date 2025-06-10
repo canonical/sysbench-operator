@@ -7,7 +7,7 @@ requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ops = "^2.21.1"
+ops = "^2.22.0"
 jinja2 = "^3.1.6"
 pydantic = "^1.10.22, <2"
 
@@ -24,7 +24,7 @@ cosl = ">=0.0.50"
 optional = true
 
 [tool.poetry.group.format.dependencies]
-ruff = "^0.11.11"
+ruff = "^0.11.13"
 
 [tool.poetry.group.lint]
 optional = true
@@ -34,11 +34,11 @@ codespell = "^2.4.1"
 shellcheck-py = "^0.10.0.1"
 
 [tool.poetry.group.unit.dependencies]
-pytest = "^8.3.5"
+pytest = "^8.4.0"
 coverage = {extras = ["toml"], version = "^7.8.2"}
 
 [tool.poetry.group.integration.dependencies]
-pytest = "^8.3.5"
+pytest = "^8.4.0"
 pytest-operator = "^0.42.0"
 pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v32.0.0", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
 pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v32.0.0", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
