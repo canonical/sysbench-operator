@@ -40,8 +40,8 @@ coverage = {extras = ["toml"], version = "^7.10.6"}
 [tool.poetry.group.integration.dependencies]
 pytest = "^8.4.1"
 pytest-operator = "^0.43.1"
-pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v35.0.2", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
-pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v35.0.2", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
+pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v40.0.2", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
+pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v40.0.2", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
 juju = "^3.6.1.0"
 tenacity = "^9.1.2"
 pyyaml = "^6.0.2"
