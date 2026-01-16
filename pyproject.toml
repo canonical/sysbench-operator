@@ -9,7 +9,8 @@ requires-poetry = ">=2.0.0"
 python = "^3.10"
 ops = "^2.23.1"
 jinja2 = "^3.1.6"
-pydantic = "^1.10.22, <2"
+pydantic = "^1.10.26, <2"
+charmlibs-apt = "^1.0.0.post0"
 
 [tool.poetry.group.charm-libs.dependencies]
 # data_platform_libs/v0/data_interfaces.py
@@ -24,7 +25,7 @@ cosl = ">=0.0.50"
 optional = true
 
 [tool.poetry.group.format.dependencies]
-ruff = "^0.12.11"
+ruff = "^0.14.13"
 
 [tool.poetry.group.lint]
 optional = true
@@ -34,17 +35,17 @@ codespell = "^2.4.1"
 shellcheck-py = "^0.10.0.1"
 
 [tool.poetry.group.unit.dependencies]
-pytest = "^8.4.1"
-coverage = {extras = ["toml"], version = "^7.10.6"}
+pytest = "^8.4.2"
+coverage = {extras = ["toml"], version = "^7.13.1"}
 
 [tool.poetry.group.integration.dependencies]
-pytest = "^8.4.1"
-pytest-operator = "^0.43.1"
+pytest = "^8.4.2"
+pytest-operator = "^0.43.2"
 pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v40.0.2", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
 pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v40.0.2", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
 juju = "^3.6.1.0"
 tenacity = "^9.1.2"
-pyyaml = "^6.0.2"
+pyyaml = "^6.0.3"
 
 [tool.coverage.run]
 branch = true

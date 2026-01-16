@@ -22,8 +22,8 @@ import subprocess
 from typing import Dict, List
 
 import ops
+from charmlibs import apt
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
-from charms.operator_libs_linux.v0 import apt
 from ops import main
 
 from constants import (

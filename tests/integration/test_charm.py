@@ -271,7 +271,8 @@ async def test_run_action_and_cause_failure(ops_test: OpsTest, db_driver, use_ro
         ),
     )[0].split("MainPID=")[1]
     pid = (
-        subprocess.check_output(
+        subprocess
+        .check_output(
             [
                 "juju",
                 "ssh",
