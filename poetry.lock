@@ -1563,8 +1563,8 @@ pyyaml = "*"
 [package.source]
 type = "git"
 url = "https://github.com/canonical/data-platform-workflows"
-reference = "v40.0.2"
-resolved_reference = "0c7d47932a26438172b0e359403952f676c376cc"
+reference = "v40.1.0"
+resolved_reference = "a1e473f377d5fedf28b32bbad2bb59181913b532"
 subdirectory = "python/pytest_plugins/pytest_operator_cache"
 
 [[package]]
@@ -1583,8 +1583,8 @@ pytest = "*"
 [package.source]
 type = "git"
 url = "https://github.com/canonical/data-platform-workflows"
-reference = "v40.0.2"
-resolved_reference = "0c7d47932a26438172b0e359403952f676c376cc"
+reference = "v40.1.0"
+resolved_reference = "a1e473f377d5fedf28b32bbad2bb59181913b532"
 subdirectory = "python/pytest_plugins/pytest_operator_groups"
 
 [[package]]
@@ -2101,4 +2101,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "652b73f12564c423429616fe5d11b25aad7f770bae31e83d4115f366d7872678"
+content-hash = "e9becdc13af3b9d0bcc7d2a1a173b73b866b732f5d63d0f4a90d6ab15ef5df0a"
