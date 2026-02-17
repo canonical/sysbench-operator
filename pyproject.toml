@@ -7,9 +7,9 @@ requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ops = "^2.23.1"
+ops = "^3.5.2"
 jinja2 = "^3.1.6"
-pydantic = "^1.10.26, <2"
+pydantic = "^2.12.5, <3"
 charmlibs-apt = "^1.0.0.post0"
 
 [tool.poetry.group.charm-libs.dependencies]
@@ -35,11 +35,11 @@ codespell = "^2.4.1"
 shellcheck-py = "^0.10.0.1"
 
 [tool.poetry.group.unit.dependencies]
-pytest = "^8.4.2"
+pytest = "^9.0.2"
 coverage = {extras = ["toml"], version = "^7.13.4"}
 
 [tool.poetry.group.integration.dependencies]
-pytest = "^8.4.2"
+pytest = "^9.0.2"
 pytest-operator = "^0.43.2"
 pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v40.0.2", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
 pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v40.0.2", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
