@@ -4,3 +4,5 @@ environment:
   GROUP: mysql-k8s_router-True
 execute: |
   tox run -e integration -- "tests/integration/$TEST_MODULE" --controller "$CONTROLLER_NAME" --model testing --group="$GROUP"
+variants:
+  - -juju36_lxd
