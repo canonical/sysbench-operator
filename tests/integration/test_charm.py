@@ -14,6 +14,7 @@ import yaml
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
+from . import architecture
 from .helpers import (
     APP_NAME,
     DB_CHARM,
@@ -119,7 +120,7 @@ async def test_build_and_deploy_k8s_only(
         )
 
     # Now, set up the sysbench and relate to the CMR
-    charm = await ops_test.build_charm(".")
+    charm = f"sysbench_ubuntu@22.04-{architecture.architecture}.charm"
     config = {
         "threads": 1,
         "tables": 1,
@@ -163,7 +164,7 @@ async def test_build_and_deploy_k8s_only(
 @pytest.mark.skip_if_deployed
 async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
-    charm = await ops_test.build_charm(".")
+    charm = f"sysbench_ubuntu@22.04-{architecture.architecture}.charm"
 
     config = {
         "threads": 1,
