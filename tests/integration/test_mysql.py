@@ -8,27 +8,17 @@ import re
 import subprocess
 from types import SimpleNamespace
 
-import juju
 import pytest
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
 from . import architecture
-from .helpers import (
-    APP_NAME,
-    DB_CHARM,
-    DB_ROUTER,
-    DEPLOY_ALL_GROUP_MARKS,
-    DEPLOY_K8S_ONLY_GROUP_MARKS,
-    DEPLOY_VM_ONLY_GROUP_MARKS,
-    DURATION,
-    K8S_DB_MODEL_NAME,
-)
+from .helpers import APP_NAME, DB_CHARM, DURATION
 
 logger = logging.getLogger(__name__)
 
 
-model_db = None
+db_driver = "mysql"
 
 
 def check_service(svc_name: str, retry_if_fail: bool = True):
@@ -56,84 +46,8 @@ async def run_action(
     return SimpleNamespace(status=result.status or "completed", response=result.results)
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_K8S_ONLY_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
-async def test_build_and_deploy_k8s_only(
-    ops_test: OpsTest, microk8s, db_driver, use_router
-) -> None:
-    """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
-    # Create a new model for DB on k8s:
-
-    global model_db
-    model_db = juju.model.Model()
-    await model_db.connect(model_name=K8S_DB_MODEL_NAME)
-
-    await model_db.deploy(
-        DB_CHARM[db_driver]["charm"],
-        application_name=DB_CHARM[db_driver]["app_name"],
-        num_units=3,
-        channel=DB_CHARM[db_driver]["channel"],
-        config=DB_CHARM[db_driver]["config"],
-        trust=True,
-    )
-    if use_router:
-        await model_db.deploy(
-            DB_ROUTER[db_driver]["charm"],
-            application_name=DB_ROUTER[db_driver]["app_name"],
-            channel=DB_ROUTER[db_driver]["channel"],
-            config=DB_ROUTER[db_driver]["config"],
-            trust=True,
-            series="jammy",
-        )
-        await model_db.relate(
-            f"{DB_CHARM[db_driver]['app_name']}:database",
-            f"{DB_ROUTER[db_driver]['app_name']}",
-        )
-
-    # Now, set up the sysbench and relate to the CMR
-    charm = f"sysbench_ubuntu@22.04-{architecture.architecture}.charm"
-    config = {
-        "threads": 1,
-        "tables": 1,
-        "scale": 1,
-        "duration": 0,
-    }
-    await ops_test.model.deploy(
-        charm,
-        application_name=APP_NAME,
-        num_units=1,
-        config=config,
-    )
-
-    if use_router:
-        await model_db.create_offer(
-            endpoint="database",
-            offer_name="database",
-            application_name=DB_ROUTER[db_driver]["app_name"],
-        )
-    else:
-        await model_db.create_offer(
-            endpoint="database",
-            offer_name="database",
-            application_name=DB_CHARM[db_driver]["app_name"],
-        )
-    await ops_test.model.consume(f"admin/{model_db.name}.database")
-    await ops_test.model.relate("database", f"{APP_NAME}:{DB_CHARM[db_driver]['app_name']}")
-
-    # Reduce the update_status frequency until the cluster is deployed
-    async with ops_test.fast_forward("60s"):
-        await ops_test.model.block_until(
-            lambda: len(ops_test.model.applications[APP_NAME].units) == 1
-        )
-    await model_db.wait_for_idle(status="active")
-    await model_db.disconnect()
-
-
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_VM_ONLY_GROUP_MARKS)
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
-async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router) -> None:
+async def test_build_and_deploy_vm_only(ops_test: OpsTest) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
     charm = f"sysbench_ubuntu@22.04-{architecture.architecture}.charm"
 
@@ -160,29 +74,12 @@ async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router
         ),
     )
 
-    if use_router:
-        await ops_test.model.deploy(
-            DB_ROUTER[db_driver]["charm"],
-            application_name=DB_ROUTER[db_driver]["app_name"],
-            channel=DB_ROUTER[db_driver]["channel"],
-            config=DB_ROUTER[db_driver]["config"],
-            series="jammy",
-        )
-        await ops_test.model.relate(
-            f"{APP_NAME}:{db_driver}", f"{DB_ROUTER[db_driver]['app_name']}"
-        )
-        await ops_test.model.relate(
-            f"{DB_CHARM[db_driver]['app_name']}:database", f"{DB_ROUTER[db_driver]['app_name']}"
-        )
-    else:
-        await ops_test.model.relate(
-            f"{APP_NAME}:{db_driver}", f"{DB_CHARM[db_driver]['app_name']}:database"
-        )
+    await ops_test.model.relate(
+        f"{APP_NAME}:{db_driver}", f"{DB_CHARM[db_driver]['app_name']}:database"
+    )
 
     # Reduce the update_status frequency until the cluster is deployed
     apps = [DB_CHARM[db_driver]["app_name"]]
-    if use_router:
-        apps.append(DB_ROUTER[db_driver]["app_name"])
     async with ops_test.fast_forward("60s"):
         await ops_test.model.block_until(
             lambda: len(ops_test.model.applications[APP_NAME].units) == 1
@@ -193,14 +90,9 @@ async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router
             timeout=30 * 60,
         )
 
-    # set the model to the global model_db
-    global model_db
-    model_db = ops_test.model
 
-
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
+async def test_prepare_action(ops_test: OpsTest) -> None:
     """Validate the prepare action."""
     output = await run_action(ops_test, "prepare", f"{APP_NAME}/0")
     assert output.status == "completed"
@@ -218,9 +110,8 @@ async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
             assert "inactive" not in svc_output and "active" in svc_output
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-async def test_run_action_and_cause_failure(ops_test: OpsTest, db_driver, use_router) -> None:
+async def test_run_action_and_cause_failure(ops_test: OpsTest) -> None:
     """Starts a run and then kills the sysbench process. Systemd must then report it as failed."""
     app = ops_test.model.applications[APP_NAME]
     await app.set_config({"duration": "0"})
@@ -287,9 +178,8 @@ async def test_run_action_and_cause_failure(ops_test: OpsTest, db_driver, use_ro
         )
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-async def test_run_action(ops_test: OpsTest, db_driver, use_router) -> None:
+async def test_run_action(ops_test: OpsTest) -> None:
     """Try to run the benchmark for DURATION and then wait until it is finished."""
     app = ops_test.model.applications[APP_NAME]
     await app.set_config({"duration": f"{DURATION}"})
@@ -323,9 +213,8 @@ async def test_run_action(ops_test: OpsTest, db_driver, use_router) -> None:
         assert "inactive" in svc_output
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
-async def test_clean_action(ops_test: OpsTest, db_driver, use_router) -> None:
+async def test_clean_action(ops_test: OpsTest) -> None:
     """Validate clean action."""
     output = await run_action(ops_test, "clean", f"{APP_NAME}/0")
     assert output.status == "completed"
