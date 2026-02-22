@@ -1,0 +1,6 @@
+summary: test_mysql_router.py
+environment:
+  TEST_MODULE: test_mysql_router.py
+execute: |
+  tox run -e integration -- "tests/integration/$TEST_MODULE" --controller "$CONTROLLER_NAME" --model testing
+
