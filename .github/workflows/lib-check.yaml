@@ -20,7 +20,7 @@ jobs:
     name: Check libraries
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ github.event.pull_request.head.repo.full_name == 'canonical/sysbench-integrator' }}
+    if: ${{ github.event.pull_request.head.repo.full_name == 'canonical/sysbench-operator' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
