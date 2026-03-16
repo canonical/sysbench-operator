@@ -11,7 +11,8 @@ APP_NAME = METADATA["name"]
 MYSQL_APP_NAME = "mysql"
 PGSQL_APP_NAME = "postgresql"
 DURATION = 10
-K8S_DB_MODEL_NAME = "concierge-microk8s"
+MICROK8S_CLOUD_NAME = "concierge-microk8s"
+K8S_DB_MODEL_NAME = "testing"
 
 
 DB_CHARM = {

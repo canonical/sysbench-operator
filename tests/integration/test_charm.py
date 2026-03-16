@@ -13,7 +13,7 @@ import pytest
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
-from . import architecture
+from .architecture import architecture
 from .helpers import (
     APP_NAME,
     DB_CHARM,
@@ -64,6 +64,10 @@ async def test_build_and_deploy_k8s_only(
 ) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
     # Create a new model for DB on k8s:
+    logging.info(f"Creating k8s model {K8S_DB_MODEL_NAME}")
+    controller = juju.controller.Controller()
+    await controller.connect()
+    await controller.add_model(K8S_DB_MODEL_NAME, cloud_name=microk8s.cloud_name)
 
     global model_db
     model_db = juju.model.Model()
@@ -92,7 +96,7 @@ async def test_build_and_deploy_k8s_only(
         )
 
     # Now, set up the sysbench and relate to the CMR
-    charm = f"sysbench_ubuntu@22.04-{architecture.architecture}.charm"
+    charm = f"sysbench_ubuntu@22.04-{architecture}.charm"
     config = {
         "threads": 1,
         "tables": 1,
@@ -127,6 +131,7 @@ async def test_build_and_deploy_k8s_only(
             lambda: len(ops_test.model.applications[APP_NAME].units) == 1
         )
     await model_db.wait_for_idle(status="active")
+    await controller.disconnect()
     await model_db.disconnect()
 
 
@@ -135,7 +140,7 @@ async def test_build_and_deploy_k8s_only(
 @pytest.mark.skip_if_deployed
 async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
-    charm = f"sysbench_ubuntu@22.04-{architecture.architecture}.charm"
+    charm = f"sysbench_ubuntu@22.04-{architecture}.charm"
 
     config = {
         "threads": 1,
