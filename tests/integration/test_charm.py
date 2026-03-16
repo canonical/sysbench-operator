@@ -10,10 +10,10 @@ from types import SimpleNamespace
 
 import juju
 import pytest
-import yaml
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
+from .architecture import architecture
 from .helpers import (
     APP_NAME,
     DB_CHARM,
@@ -23,7 +23,6 @@ from .helpers import (
     DEPLOY_VM_ONLY_GROUP_MARKS,
     DURATION,
     K8S_DB_MODEL_NAME,
-    MICROK8S_CLOUD_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,28 +54,6 @@ async def run_action(
     result = await action.wait()
     logging.info(f"request results: {result.results}")
     return SimpleNamespace(status=result.status or "completed", response=result.results)
-
-
-@pytest.fixture(scope="module", autouse=True)
-async def destroy_model_in_k8s(ops_test):
-    yield
-
-    if ops_test.keep_model:
-        return
-    controller = juju.controller.Controller()
-    await controller.connect()
-    await controller.destroy_model(K8S_DB_MODEL_NAME)
-    await controller.disconnect()
-
-    ctlname = list(yaml.safe_load(subprocess.check_output(["juju", "show-controller"])).keys())[0]
-
-    # We have deployed microk8s, and we do not need it anymore
-    subprocess.run(["sudo", "snap", "remove", "--purge", "microk8s"], check=True)
-    subprocess.run(["sudo", "snap", "remove", "--purge", "kubectl"], check=True)
-    subprocess.run(
-        ["juju", "remove-cloud", "--client", "--controller", ctlname, MICROK8S_CLOUD_NAME],
-        check=True,
-    )
 
 
 @pytest.mark.parametrize("db_driver,use_router", DEPLOY_K8S_ONLY_GROUP_MARKS)
@@ -119,7 +96,7 @@ async def test_build_and_deploy_k8s_only(
         )
 
     # Now, set up the sysbench and relate to the CMR
-    charm = await ops_test.build_charm(".")
+    charm = f"sysbench_ubuntu@22.04-{architecture}.charm"
     config = {
         "threads": 1,
         "tables": 1,
@@ -163,7 +140,7 @@ async def test_build_and_deploy_k8s_only(
 @pytest.mark.skip_if_deployed
 async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
-    charm = await ops_test.build_charm(".")
+    charm = f"sysbench_ubuntu@22.04-{architecture}.charm"
 
     config = {
         "threads": 1,
