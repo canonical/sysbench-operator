@@ -9,7 +9,7 @@ import subprocess
 from typing import Any, Dict, Optional
 
 import ops
-from charms.operator_libs_linux.v1.systemd import (
+from charmlibs.systemd import (
     daemon_reload,
     service_failed,
     service_restart,
