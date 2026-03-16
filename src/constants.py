@@ -7,7 +7,7 @@ import os
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, model_validator
 
 VALID_LOG_LEVELS = ["info", "debug", "warning", "error", "critical"]
 
@@ -60,7 +60,7 @@ class SysbenchBaseDatabaseModel(BaseModel):
     tables: int
     scale: int
 
-    @root_validator()
+    @model_validator(mode="before")
     @classmethod
     def validate_if_missing_params(cls, field_values):
         """Validate if missing params."""
