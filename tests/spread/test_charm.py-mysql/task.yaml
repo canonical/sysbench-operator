@@ -1,7 +1,6 @@
-summary: test_charm.py-mysql-router-false-lxd
+summary: test_charm.py-mysql
 environment:
   TEST_MODULE: test_charm.py
-  SUBSTRATE: lxd
   ROUTER: 'false'
   DATABASE: mysql
 execute: |

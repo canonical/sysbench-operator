@@ -1,12 +1,26 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+from os import getenv
 from types import SimpleNamespace
 
 import pytest
-import pytest_operator.plugin
 
 
 @pytest.fixture(scope="module")
-async def microk8s(ops_test: pytest_operator.plugin.OpsTest) -> None:
-    return SimpleNamespace(cloud_name="concierge-microk8s")
+def microk8s() -> SimpleNamespace | None:
+    if "k8s" in getenv("SPREAD_VARIANT", ""):
+        return SimpleNamespace(cloud_name="microk8s")
+    return None
+
+
+@pytest.fixture(scope="session")
+def db_driver() -> str:
+    if db := getenv("DATABASE"):
+        return db
+    raise Exception("No db driver set")
+
+
+@pytest.fixture(scope="session")
+def use_router() -> bool:
+    return getenv("ROUTER") == "true"
