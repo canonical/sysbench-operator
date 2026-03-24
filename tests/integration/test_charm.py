@@ -10,13 +10,24 @@ from types import SimpleNamespace
 
 import juju
 import pytest
+import yaml
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
 from .architecture import architecture
-from .helpers import APP_NAME, DB_CHARM, DB_ROUTER, DURATION, K8S_DB_MODEL_NAME
+from .helpers import (
+    APP_NAME,
+    DB_CHARM,
+    DB_ROUTER,
+    DURATION,
+    K8S_DB_MODEL_NAME,
+    MICROK8S_CLOUD_NAME,
+)
 
 logger = logging.getLogger(__name__)
+
+
+model_db = None
 
 
 def check_service(svc_name: str, retry_if_fail: bool = True):
@@ -44,6 +55,26 @@ async def run_action(
     return SimpleNamespace(status=result.status or "completed", response=result.results)
 
 
+@pytest.fixture(scope="module", autouse=True)
+async def destroy_model_in_k8s(ops_test, microk8s):
+    yield
+
+    if ops_test.keep_model or not microk8s:
+        return
+    controller = juju.controller.Controller()
+    await controller.connect()
+    await controller.destroy_model(K8S_DB_MODEL_NAME)
+    await controller.disconnect()
+
+    ctlname = list(yaml.safe_load(subprocess.check_output(["juju", "show-controller"])).keys())[0]
+
+    # We have deployed microk8s, and we do not need it anymore
+    subprocess.run(
+        ["juju", "remove-cloud", "--client", "--controller", ctlname, MICROK8S_CLOUD_NAME],
+        check=True,
+    )
+
+
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 async def test_build_and_deploy_k8s_only(
@@ -54,6 +85,13 @@ async def test_build_and_deploy_k8s_only(
         pytest.skip("LXD test")
         return
 
+    # Create a new model for DB on k8s:
+    logging.info(f"Creating k8s model {K8S_DB_MODEL_NAME}")
+    controller = juju.controller.Controller()
+    await controller.connect()
+    await controller.add_model(K8S_DB_MODEL_NAME, cloud_name=microk8s.cloud_name)
+
+    global model_db
     model_db = juju.model.Model()
     await model_db.connect(model_name=K8S_DB_MODEL_NAME)
 
