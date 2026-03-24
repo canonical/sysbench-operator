@@ -124,7 +124,7 @@ prepare-each: |
   # `concierge prepare` needs to be run for each spread job in case Juju version changed
   concierge prepare --trace
 
-  juju switch "$CONTROLLER_NAME"
+  juju switch "concierge-lxd"
   # Unable to set constraint on all models because of Juju bug:
   # https://bugs.launchpad.net/juju/+bug/2065050
   juju set-model-constraints arch="$(dpkg --print-architecture)"

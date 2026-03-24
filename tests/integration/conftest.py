@@ -10,7 +10,7 @@ import pytest
 @pytest.fixture(scope="session")
 def microk8s() -> SimpleNamespace | None:
     if "k8s" in getenv("SPREAD_VARIANT", ""):
-        return SimpleNamespace(cloud_name="microk8s")
+        return SimpleNamespace(cloud_name="microk8s", controller_name="concierge-microk8s")
     return None
 
 

@@ -19,9 +19,6 @@ from .helpers import APP_NAME, DB_CHARM, DB_ROUTER, DURATION, K8S_DB_MODEL_NAME
 logger = logging.getLogger(__name__)
 
 
-model_db = None
-
-
 def check_service(svc_name: str, retry_if_fail: bool = True):
     if not retry_if_fail:
         return subprocess.check_output(
@@ -56,13 +53,7 @@ async def test_build_and_deploy_k8s_only(
     if not microk8s:
         pytest.skip("LXD test")
         return
-    # Create a new model for DB on k8s:
-    logging.info(f"Creating k8s model {K8S_DB_MODEL_NAME}")
-    controller = juju.controller.Controller()
-    await controller.connect()
-    await controller.add_model(K8S_DB_MODEL_NAME, cloud_name=microk8s.cloud_name)
 
-    global model_db
     model_db = juju.model.Model()
     await model_db.connect(model_name=K8S_DB_MODEL_NAME)
 
@@ -124,7 +115,6 @@ async def test_build_and_deploy_k8s_only(
             lambda: len(ops_test.model.applications[APP_NAME].units) == 1
         )
     await model_db.wait_for_idle(status="active")
-    await controller.disconnect()
     await model_db.disconnect()
 
 
@@ -194,10 +184,6 @@ async def test_build_and_deploy_vm_only(
             status="active",
             timeout=30 * 60,
         )
-
-    # set the model to the global model_db
-    global model_db
-    model_db = ops_test.model
 
 
 @pytest.mark.abort_on_fail
