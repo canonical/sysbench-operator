@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def microk8s() -> SimpleNamespace | None:
     if "k8s" in getenv("SPREAD_VARIANT", ""):
         return SimpleNamespace(cloud_name="microk8s")
@@ -15,9 +15,11 @@ def microk8s() -> SimpleNamespace | None:
 
 
 @pytest.fixture(scope="session")
-def db_driver() -> str:
+def db_driver(microk8s) -> str:
     if db := getenv("DATABASE"):
-        return db
+        if not microk8s:
+            return db
+        return db + "-k8s"
     raise Exception("No db driver set")
 
 
