@@ -34,4 +34,3 @@ jobs:
     permissions:
       # Add label to prs
       pull-requests: write
-
