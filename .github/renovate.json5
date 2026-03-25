@@ -4,8 +4,8 @@
     'github>canonical/data-platform//renovate_presets/charm.json5',
   ],
   reviewers: [
-    'dragomirp',
-    'welpaolo',
+    'team:data-postgresql',
+    'team:data-mysql',
   ],
   packageRules: [],
   customManagers: [],
