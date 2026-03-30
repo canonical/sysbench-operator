@@ -14,13 +14,11 @@ import yaml
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
+from .architecture import architecture
 from .helpers import (
     APP_NAME,
     DB_CHARM,
     DB_ROUTER,
-    DEPLOY_ALL_GROUP_MARKS,
-    DEPLOY_K8S_ONLY_GROUP_MARKS,
-    DEPLOY_VM_ONLY_GROUP_MARKS,
     DURATION,
     K8S_DB_MODEL_NAME,
     MICROK8S_CLOUD_NAME,
@@ -58,10 +56,10 @@ async def run_action(
 
 
 @pytest.fixture(scope="module", autouse=True)
-async def destroy_model_in_k8s(ops_test):
+async def destroy_model_in_k8s(ops_test, microk8s):
     yield
 
-    if ops_test.keep_model:
+    if ops_test.keep_model or not microk8s:
         return
     controller = juju.controller.Controller()
     await controller.connect()
@@ -71,21 +69,22 @@ async def destroy_model_in_k8s(ops_test):
     ctlname = list(yaml.safe_load(subprocess.check_output(["juju", "show-controller"])).keys())[0]
 
     # We have deployed microk8s, and we do not need it anymore
-    subprocess.run(["sudo", "snap", "remove", "--purge", "microk8s"], check=True)
-    subprocess.run(["sudo", "snap", "remove", "--purge", "kubectl"], check=True)
     subprocess.run(
         ["juju", "remove-cloud", "--client", "--controller", ctlname, MICROK8S_CLOUD_NAME],
         check=True,
     )
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_K8S_ONLY_GROUP_MARKS)
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 async def test_build_and_deploy_k8s_only(
     ops_test: OpsTest, microk8s, db_driver, use_router
 ) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
+    if not microk8s:
+        pytest.skip("LXD test")
+        return
+
     # Create a new model for DB on k8s:
     logging.info(f"Creating k8s model {K8S_DB_MODEL_NAME}")
     controller = juju.controller.Controller()
@@ -119,7 +118,7 @@ async def test_build_and_deploy_k8s_only(
         )
 
     # Now, set up the sysbench and relate to the CMR
-    charm = await ops_test.build_charm(".")
+    charm = f"./sysbench_ubuntu@22.04-{architecture}.charm"
     config = {
         "threads": 1,
         "tables": 1,
@@ -154,16 +153,19 @@ async def test_build_and_deploy_k8s_only(
             lambda: len(ops_test.model.applications[APP_NAME].units) == 1
         )
     await model_db.wait_for_idle(status="active")
-    await controller.disconnect()
     await model_db.disconnect()
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_VM_ONLY_GROUP_MARKS)
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router) -> None:
+async def test_build_and_deploy_vm_only(
+    ops_test: OpsTest, microk8s, db_driver, use_router
+) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
-    charm = await ops_test.build_charm(".")
+    if microk8s:
+        pytest.skip("K8s test")
+        return
+    charm = f"./sysbench_ubuntu@22.04-{architecture}.charm"
 
     config = {
         "threads": 1,
@@ -221,12 +223,7 @@ async def test_build_and_deploy_vm_only(ops_test: OpsTest, db_driver, use_router
             timeout=30 * 60,
         )
 
-    # set the model to the global model_db
-    global model_db
-    model_db = ops_test.model
 
-
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
 async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
     """Validate the prepare action."""
@@ -246,7 +243,6 @@ async def test_prepare_action(ops_test: OpsTest, db_driver, use_router) -> None:
             assert "inactive" not in svc_output and "active" in svc_output
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
 async def test_run_action_and_cause_failure(ops_test: OpsTest, db_driver, use_router) -> None:
     """Starts a run and then kills the sysbench process. Systemd must then report it as failed."""
@@ -315,7 +311,6 @@ async def test_run_action_and_cause_failure(ops_test: OpsTest, db_driver, use_ro
         )
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
 async def test_run_action(ops_test: OpsTest, db_driver, use_router) -> None:
     """Try to run the benchmark for DURATION and then wait until it is finished."""
@@ -351,7 +346,6 @@ async def test_run_action(ops_test: OpsTest, db_driver, use_router) -> None:
         assert "inactive" in svc_output
 
 
-@pytest.mark.parametrize("db_driver,use_router", DEPLOY_ALL_GROUP_MARKS)
 @pytest.mark.abort_on_fail
 async def test_clean_action(ops_test: OpsTest, db_driver, use_router) -> None:
     """Validate clean action."""

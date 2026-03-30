@@ -1,0 +1,9 @@
+summary: test_charm.py-mysql
+environment:
+  TEST_MODULE: test_charm.py
+  ROUTER: 'false'
+  DATABASE: mysql
+execute: |
+  tox run -e integration -- "tests/integration/$TEST_MODULE" --controller "$CONTROLLER_NAME" --model testing
+variants:
+  - -juju36_microk8s

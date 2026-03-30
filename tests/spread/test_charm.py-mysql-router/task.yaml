@@ -1,0 +1,7 @@
+summary: test_charm.py-mysql-router
+environment:
+  TEST_MODULE: test_charm.py
+  ROUTER: 'true'
+  DATABASE: mysql
+execute: |
+  tox run -e integration -- "tests/integration/$TEST_MODULE" --controller "$CONTROLLER_NAME" --model testing
