@@ -1891,7 +1891,8 @@ class ProviderData(Data):
         if not schema_path.exists():
             raise FileNotFoundError(f"Can't locate status schema file: {schema_path}")
 
-        content = json.load(open(schema_path, "r"))
+        with open(schema_path, "r") as schema_file:
+            content = json.load(schema_file)
 
         return {s["code"]: RelationStatus(**s) for s in content.get("statuses", [])}
 
