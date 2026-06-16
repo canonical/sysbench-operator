@@ -23,7 +23,7 @@ cosl = ">=0.0.50"
 optional = true
 
 [tool.poetry.group.format.dependencies]
-ruff = "^0.15.16"
+ruff = "^0.15.17"
 
 [tool.poetry.group.lint]
 optional = true
@@ -33,11 +33,11 @@ codespell = "^2.4.2"
 shellcheck-py = "^0.10.0.1"
 
 [tool.poetry.group.unit.dependencies]
-pytest = "^9.0.3"
+pytest = "^9.1.0"
 coverage = {extras = ["toml"], version = "^7.14.1"}
 
 [tool.poetry.group.integration.dependencies]
-pytest = "^9.0.3"
+pytest = "^9.1.0"
 pytest-operator = "^0.43.2"
 juju = "^3.6.1.0"
 tenacity = "^9.1.4"
