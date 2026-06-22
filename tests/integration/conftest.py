@@ -1,7 +1,7 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-# import pathlib
+import pathlib
 import subprocess
 from os import getenv
 from types import SimpleNamespace
@@ -21,10 +21,10 @@ async def k8s(ops_test: pytest_operator.plugin.OpsTest) -> SimpleNamespace | Non
         for controller_name in controller.keys():
             # controller_data = details["details"]
             try:
-                # subprocess.run(["mkdir", "-p", str(pathlib.Path.home() / ".kube")], check=True)
-                # kubeconfig = subprocess.check_output(["sudo", "microk8s", "config"])
-                # with open(str(pathlib.Path.home() / ".kube" / "config"), "w") as f:
-                #     f.write(kubeconfig.decode())
+                subprocess.run(["mkdir", "-p", str(pathlib.Path.home() / ".kube")], check=True)
+                kubeconfig = subprocess.check_output(["sudo", "k8s", "config"])
+                with open(str(pathlib.Path.home() / ".kube" / "config"), "w") as f:
+                    f.write(kubeconfig.decode())
                 # Get controller name
                 ctlname = controller_name
 
