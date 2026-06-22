@@ -10,11 +10,11 @@ import pytest
 import pytest_operator.plugin
 import yaml
 
-from .helpers import MICROK8S_CLOUD_NAME
+from .helpers import K8S_CLOUD_NAME
 
 
 @pytest.fixture(scope="module")
-async def microk8s(ops_test: pytest_operator.plugin.OpsTest) -> None:
+async def k8s(ops_test: pytest_operator.plugin.OpsTest) -> SimpleNamespace | None:
     if "k8s" in getenv("SPREAD_VARIANT", ""):
         controller = yaml.safe_load(subprocess.check_output(["juju", "show-controller"]))
 
@@ -22,7 +22,7 @@ async def microk8s(ops_test: pytest_operator.plugin.OpsTest) -> None:
             # controller_data = details["details"]
             try:
                 subprocess.run(["mkdir", "-p", str(pathlib.Path.home() / ".kube")], check=True)
-                kubeconfig = subprocess.check_output(["sudo", "microk8s", "config"])
+                kubeconfig = subprocess.check_output(["sudo", "k8s", "config"])
                 with open(str(pathlib.Path.home() / ".kube" / "config"), "w") as f:
                     f.write(kubeconfig.decode())
                 # Get controller name
@@ -30,7 +30,7 @@ async def microk8s(ops_test: pytest_operator.plugin.OpsTest) -> None:
 
                 # Add microk8s to the kubeconfig
                 subprocess.run(
-                    ["juju", "add-k8s", MICROK8S_CLOUD_NAME, "--client", "--controller", ctlname],
+                    ["juju", "add-k8s", K8S_CLOUD_NAME, "--client", "--controller", ctlname],
                     check=True,
                 )
 
@@ -42,9 +42,9 @@ async def microk8s(ops_test: pytest_operator.plugin.OpsTest) -> None:
 
 
 @pytest.fixture(scope="module")
-def db_driver(microk8s) -> str:
+def db_driver(k8s) -> str:
     if db := getenv("DATABASE"):
-        if not microk8s:
+        if not k8s:
             return db
         return db + "-k8s"
     raise Exception("No db driver set")
