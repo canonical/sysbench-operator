@@ -102,7 +102,7 @@ kill-timeout: 3h
 environment:
   PATH: $PATH:$(pipx environment --value PIPX_BIN_DIR)
   CONCIERGE_JUJU_CHANNEL/juju36_lxd: 3.6/stable
-  CONCIERGE_JUJU_CHANNEL/juju36_microk8s: 3.6/stable
+  CONCIERGE_JUJU_CHANNEL/juju36_k8s: 3.6/stable
   CONTROLLER_NAME: concierge-lxd
 prepare: |
   snap refresh --hold

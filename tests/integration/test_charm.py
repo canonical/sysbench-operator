@@ -20,8 +20,8 @@ from .helpers import (
     DB_CHARM,
     DB_ROUTER,
     DURATION,
+    K8S_CLOUD_NAME,
     K8S_DB_MODEL_NAME,
-    MICROK8S_CLOUD_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,10 +56,10 @@ async def run_action(
 
 
 @pytest.fixture(scope="module", autouse=True)
-async def destroy_model_in_k8s(ops_test, microk8s):
+async def destroy_model_in_k8s(ops_test, k8s):
     yield
 
-    if ops_test.keep_model or not microk8s:
+    if ops_test.keep_model or not k8s:
         return
     controller = juju.controller.Controller()
     await controller.connect()
@@ -70,18 +70,16 @@ async def destroy_model_in_k8s(ops_test, microk8s):
 
     # We have deployed microk8s, and we do not need it anymore
     subprocess.run(
-        ["juju", "remove-cloud", "--client", "--controller", ctlname, MICROK8S_CLOUD_NAME],
+        ["juju", "remove-cloud", "--client", "--controller", ctlname, K8S_CLOUD_NAME],
         check=True,
     )
 
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy_k8s_only(
-    ops_test: OpsTest, microk8s, db_driver, use_router
-) -> None:
+async def test_build_and_deploy_k8s_only(ops_test: OpsTest, k8s, db_driver, use_router) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
-    if not microk8s:
+    if not k8s:
         pytest.skip("LXD test")
         return
 
@@ -89,7 +87,7 @@ async def test_build_and_deploy_k8s_only(
     logging.info(f"Creating k8s model {K8S_DB_MODEL_NAME}")
     controller = juju.controller.Controller()
     await controller.connect()
-    await controller.add_model(K8S_DB_MODEL_NAME, cloud_name=microk8s.cloud_name)
+    await controller.add_model(K8S_DB_MODEL_NAME, cloud_name=k8s.cloud_name)
 
     global model_db
     model_db = juju.model.Model()
@@ -158,11 +156,9 @@ async def test_build_and_deploy_k8s_only(
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy_vm_only(
-    ops_test: OpsTest, microk8s, db_driver, use_router
-) -> None:
+async def test_build_and_deploy_vm_only(ops_test: OpsTest, k8s, db_driver, use_router) -> None:
     """Build the charm and deploy + 3 db units to ensure a cluster is formed."""
-    if microk8s:
+    if k8s:
         pytest.skip("K8s test")
         return
     charm = f"./sysbench_ubuntu@22.04-{architecture}.charm"
