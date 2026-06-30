@@ -7,7 +7,7 @@ requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ops = "^3.7.1"
+ops = "^3.8.0"
 jinja2 = "^3.1.6"
 pydantic = "^2.13.4"
 charmlibs-apt = "^1.0.0-post.0"
@@ -23,7 +23,7 @@ cosl = ">=0.0.50"
 optional = true
 
 [tool.poetry.group.format.dependencies]
-ruff = "^0.15.18"
+ruff = "^0.15.20"
 
 [tool.poetry.group.lint]
 optional = true
