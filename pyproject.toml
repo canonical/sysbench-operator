@@ -34,7 +34,7 @@ shellcheck-py = "^0.10.0.1"
 
 [tool.poetry.group.unit.dependencies]
 pytest = "^9.1.1"
-coverage = {extras = ["toml"], version = "^7.14.3"}
+coverage = {extras = ["toml"], version = "^7.15.0"}
 
 [tool.poetry.group.integration.dependencies]
 pytest = "^9.1.1"
