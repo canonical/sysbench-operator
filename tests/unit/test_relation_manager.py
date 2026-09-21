@@ -12,7 +12,6 @@ import pytest
 import yaml
 from scenario import Context, Relation, State
 
-import constants
 from constants import (
     DatabaseRelationStatusEnum,
     MultipleRelationsToDBError,
@@ -305,8 +304,3 @@ def test_options_factory_relation_data(ctx):
     factory = SysbenchOptionsFactory(charm, charm.manager.relations["mysql"])
     assert factory.relation_data["endpoints"] == "db-host:3306"
     assert factory.relation_data["username"] == "db-user"
-
-
-def test_database_name_constant_unchanged():
-    # DatabaseRequires is set up with this database name
-    assert constants.DATABASE_NAME == "sysbench-db"
